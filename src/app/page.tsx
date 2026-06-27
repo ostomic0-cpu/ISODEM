@@ -19,7 +19,7 @@ export default function DashboardPage() {
     async function load() {
       try {
         const [documents, audits, capas] = await Promise.all([
-          fetch("/api/documents").then((response) => response.json()),
+          fetch("/api/documents").then((response) => response.json()).then((body) => body.documents ?? []),
           fetch("/api/audits").then((response) => response.json()),
           fetch("/api/capas").then((response) => response.json()),
         ]);
