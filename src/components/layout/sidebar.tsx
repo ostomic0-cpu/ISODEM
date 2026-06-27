@@ -9,7 +9,16 @@ const navItems = [
 ];
 
 export function Sidebar({ role }: { role: string }) {
-  const visibleNavItems = role === "Admin" ? [...navItems, { href: "/users", label: "จัดการผู้ใช้" }] : navItems;
+  const adminItems = [
+    ...navItems,
+    { href: "/activity", label: "กิจกรรม" },
+    { href: "/users", label: "จัดการผู้ใช้" },
+  ];
+  const qaItems = [
+    ...navItems,
+    { href: "/activity", label: "กิจกรรม" },
+  ];
+  const visibleNavItems = role === "Admin" ? adminItems : role === "QA" ? qaItems : navItems;
 
   return (
     <aside className="border-b border-slate-200 bg-white lg:min-h-screen lg:border-b-0 lg:border-r">

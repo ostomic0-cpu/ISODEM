@@ -3,6 +3,7 @@ import bcrypt from "bcryptjs";
 import { type NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireApiAuth } from "@/lib/auth";
+import { logActivity } from "@/lib/activity";
 
 const userSelect = {
   id: true,
@@ -57,6 +58,7 @@ export async function POST(request: NextRequest) {
       data: { email, name, department, roleId: roleRecord.id, passwordHash },
       select: userSelect,
     });
+    logActivity(auth.session.id, "user.created", { email: user.email, name: user.name, role });
     return Response.json(user, { status: 201 });
   } catch (error) {
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {

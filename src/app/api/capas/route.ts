@@ -1,6 +1,7 @@
 import { type NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireApiAuth } from "@/lib/auth";
+import { logActivity } from "@/lib/activity";
 
 export async function GET(request: NextRequest) {
   const auth = await requireApiAuth(request, "capas", "read");
@@ -24,5 +25,6 @@ export async function POST(request: NextRequest) {
       targetDate: new Date(body.targetDate),
     },
   });
+  logActivity(auth.session.id, "capa.created", { capaId: capa.id, findingId: capa.findingId, status: capa.status });
   return Response.json(capa, { status: 201 });
 }

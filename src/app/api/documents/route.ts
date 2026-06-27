@@ -5,6 +5,7 @@ import { Prisma } from "@prisma/client";
 import { type NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireApiAuth } from "@/lib/auth";
+import { logActivity } from "@/lib/activity";
 
 const uploadDir = path.join(process.cwd(), "public", "uploads", "documents");
 const ownerSelect = { id: true, email: true, name: true, department: true, roleId: true, isActive: true, createdAt: true, updatedAt: true };
@@ -128,6 +129,7 @@ export async function POST(request: NextRequest) {
         data: documentData(requestedDocNumber),
         include: { versions: true },
       });
+      logActivity(auth.session.id, "document.created", { docNumber: document.docNumber, title: document.title, category: document.category });
       return Response.json(document, { status: 201 });
     }
 
@@ -139,6 +141,7 @@ export async function POST(request: NextRequest) {
       });
     });
 
+    logActivity(auth.session.id, "document.created", { docNumber: document.docNumber, title: document.title, category: document.category });
     return Response.json(document, { status: 201 });
   } catch (error) {
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {

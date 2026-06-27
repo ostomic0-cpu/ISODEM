@@ -21,6 +21,7 @@ model User {
   approvedDocumentVersions  DocumentVersion[] @relation("ApprovedVersions")
   audits                    Audit[]
   capas                     CAPA[]
+  activityLogs              ActivityLog[]
   createdAt                 DateTime          @default(now())
   updatedAt                 DateTime          @updatedAt
 }
@@ -141,4 +142,16 @@ model CAPA {
   targetDate        DateTime
   createdAt         DateTime     @default(now())
   updatedAt         DateTime     @updatedAt
+}
+
+model ActivityLog {
+  id        String   @id @default(cuid())
+  action    String
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  metadata  String   @default("{}")
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([createdAt])
 }

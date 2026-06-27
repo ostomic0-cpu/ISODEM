@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { comparePassword, setAuthCookie, signSession } from "@/lib/auth";
+import { logActivity } from "@/lib/activity";
 
 export async function POST(request: Request) {
   try {
@@ -31,6 +32,7 @@ export async function POST(request: Request) {
     });
     const response = NextResponse.json({ ok: true });
     setAuthCookie(response, token);
+    logActivity(user.id, "login.success", { email: user.email, name: user.name });
     return response;
   } catch {
     return Response.json({ error: "ไม่สามารถเข้าสู่ระบบได้" }, { status: 500 });

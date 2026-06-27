@@ -4,6 +4,7 @@ import { randomUUID } from "node:crypto";
 import { type NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireApiAuth } from "@/lib/auth";
+import { logActivity } from "@/lib/activity";
 
 const uploadDir = path.join(process.cwd(), "public", "uploads", "documents");
 const userSelect = { id: true, email: true, name: true, department: true, roleId: true, createdAt: true, updatedAt: true };
@@ -71,6 +72,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       submittedById: auth.session.id,
     },
   });
+  logActivity(auth.session.id, "revision.created", { documentId: id, versionNumber: version.versionNumber });
   return Response.json(version, { status: 201 });
 }
 

@@ -1,6 +1,7 @@
 import { type NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireApiAuth } from "@/lib/auth";
+import { logActivity } from "@/lib/activity";
 
 export async function GET(request: NextRequest) {
   const auth = await requireApiAuth(request, "audits", "read");
@@ -25,5 +26,6 @@ export async function POST(request: NextRequest) {
       checklistData: body.checklistData || "[]",
     },
   });
+  logActivity(auth.session.id, "audit.created", { auditId: audit.id, title: audit.title, status: audit.status });
   return Response.json(audit, { status: 201 });
 }

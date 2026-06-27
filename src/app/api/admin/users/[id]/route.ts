@@ -3,6 +3,7 @@ import bcrypt from "bcryptjs";
 import { type NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireApiAuth } from "@/lib/auth";
+import { logActivity } from "@/lib/activity";
 
 const userSelect = {
   id: true,
@@ -47,6 +48,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       data,
       select: userSelect,
     });
+    logActivity(auth.session.id, "user.updated", { targetUserId: user.id, email: user.email, name: user.name });
     return Response.json(user);
   } catch (error) {
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2025") {
@@ -72,8 +74,9 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
     await prisma.user.update({
       where: { id },
       data: { isActive: false },
-      select: { id: true },
+      select: { id: true, email: true, name: true },
     });
+    logActivity(auth.session.id, "user.disabled", { targetUserId: id });
     return Response.json({ ok: true });
   } catch (error) {
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2025") {
