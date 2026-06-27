@@ -17,6 +17,7 @@ model User {
   role                      Role              @relation(fields: [roleId], references: [id])
   isActive                  Boolean           @default(true)
   documents                 Document[]
+  approvedDocuments         Document[]        @relation("ApprovedDocuments")
   submittedDocumentVersions DocumentVersion[] @relation("SubmittedVersions")
   approvedDocumentVersions  DocumentVersion[] @relation("ApprovedVersions")
   audits                    Audit[]
@@ -71,6 +72,10 @@ model Document {
   folderId    String
   folder      Folder            @relation(fields: [folderId], references: [id])
   versions    DocumentVersion[]
+  rejectReason String?
+  approvalDate DateTime?
+  approvedById String?
+  approvedBy  User?             @relation("ApprovedDocuments", fields: [approvedById], references: [id])
   createdAt   DateTime          @default(now())
   updatedAt   DateTime          @updatedAt
 }

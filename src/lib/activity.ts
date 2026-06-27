@@ -8,6 +8,7 @@ const ALLOWED_METADATA_KEYS = new Set([
   "email",
   "name",
   "status",
+  "reason",
   "department",
   "category",
   "versionNumber",

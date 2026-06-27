@@ -36,6 +36,15 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
   if ("error" in auth) return auth.error;
   const { id } = await params;
   const body = await request.json();
+  const currentDocument = await prisma.document.findUnique({
+    where: { id },
+    select: { id: true, status: true },
+  });
+  if (!currentDocument) return Response.json({ error: "ไม่พบเอกสาร" }, { status: 404 });
+  if (currentDocument.status === "Approved" || currentDocument.status === "Obsolete") {
+    return Response.json({ error: "เอกสารที่อนุมัติหรือเก็บถาวรแล้วไม่สามารถแก้ไขได้" }, { status: 400 });
+  }
+
   const document = await prisma.document.update({
     where: { id },
     data: {
@@ -56,23 +65,43 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   const form = await request.formData();
   const file = form.get("file");
   if (!(file instanceof File)) return Response.json({ error: "กรุณาแนบไฟล์" }, { status: 400 });
+  const currentDocument = await prisma.document.findUnique({
+    where: { id },
+    select: { id: true, status: true, docNumber: true },
+  });
+  if (!currentDocument) return Response.json({ error: "ไม่พบเอกสาร" }, { status: 404 });
+
   await mkdir(uploadDir, { recursive: true });
   const storedFilename = `${randomUUID()}${path.extname(file.name)}`;
   const filePath = `/uploads/documents/${storedFilename}`;
   await writeFile(path.join(uploadDir, storedFilename), Buffer.from(await file.arrayBuffer()));
-  const version = await prisma.documentVersion.create({
-    data: {
-      documentId: id,
-      versionNumber: String(form.get("versionNumber") || "1.0"),
-      originalFilename: file.name,
-      storedFilename,
-      filePath,
-      changeSummary: String(form.get("changeSummary") || "เพิ่มเวอร์ชันใหม่"),
-      status: "InReview",
-      submittedById: auth.session.id,
-    },
+  const version = await prisma.$transaction(async (tx) => {
+    const createdVersion = await tx.documentVersion.create({
+      data: {
+        documentId: id,
+        versionNumber: String(form.get("versionNumber") || "1.0"),
+        originalFilename: file.name,
+        storedFilename,
+        filePath,
+        changeSummary: String(form.get("changeSummary") || "เพิ่มเวอร์ชันใหม่"),
+        status: "InReview",
+        submittedById: auth.session.id,
+      },
+    });
+
+    if (currentDocument.status === "Approved") {
+      await tx.document.update({
+        where: { id },
+        data: { status: "InReview" },
+      });
+    }
+
+    return createdVersion;
   });
-  logActivity(auth.session.id, "revision.created", { documentId: id, versionNumber: version.versionNumber });
+  await logActivity(auth.session.id, "revision.created", {
+    docNumber: currentDocument.docNumber,
+    versionNumber: version.versionNumber,
+  });
   return Response.json(version, { status: 201 });
 }
 

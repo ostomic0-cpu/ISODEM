@@ -98,7 +98,7 @@ export async function POST(request: NextRequest) {
     docNumber,
       title: String(form.get("title") ?? ""),
       category,
-      status: String(form.get("status") || "Draft"),
+      status: "Draft",
       department: String(form.get("department") ?? auth.session.department),
       ownerId: auth.session.id,
       folderId: String(form.get("folderId") ?? "root-folder"),
@@ -129,7 +129,7 @@ export async function POST(request: NextRequest) {
         data: documentData(requestedDocNumber),
         include: { versions: true },
       });
-      logActivity(auth.session.id, "document.created", { docNumber: document.docNumber, title: document.title, category: document.category });
+      await logActivity(auth.session.id, "document.created", { docNumber: document.docNumber, title: document.title });
       return Response.json(document, { status: 201 });
     }
 
@@ -141,7 +141,7 @@ export async function POST(request: NextRequest) {
       });
     });
 
-    logActivity(auth.session.id, "document.created", { docNumber: document.docNumber, title: document.title, category: document.category });
+    await logActivity(auth.session.id, "document.created", { docNumber: document.docNumber, title: document.title });
     return Response.json(document, { status: 201 });
   } catch (error) {
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
