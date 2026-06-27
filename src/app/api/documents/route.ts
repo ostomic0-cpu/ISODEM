@@ -30,15 +30,51 @@ async function generateDocNumber(tx: Prisma.TransactionClient, category: string)
 export async function GET(request: NextRequest) {
   const auth = await requireApiAuth(request, "documents", "read");
   if ("error" in auth) return auth.error;
-  const documents = await prisma.document.findMany({
-    orderBy: { updatedAt: "desc" },
-    include: {
-      owner: { select: ownerSelect },
-      folder: true,
-      versions: { orderBy: { createdAt: "desc" }, take: 1 },
-    },
+
+  const url = new URL(request.url);
+  const q = url.searchParams.get("q") || "";
+  const category = url.searchParams.get("category") || "";
+  const status = url.searchParams.get("status") || "";
+  const department = url.searchParams.get("department") || "";
+  const folderId = url.searchParams.get("folderId") || "";
+  const sortBy = url.searchParams.get("sortBy") || "updatedAt";
+  const sortOrder = url.searchParams.get("sortOrder") || "desc";
+  const page = Math.max(1, parseInt(url.searchParams.get("page") || "1", 10));
+  const pageSize = Math.min(100, Math.max(1, parseInt(url.searchParams.get("pageSize") || "20", 10)));
+
+  const where: Prisma.DocumentWhereInput = {};
+  if (q) where.OR = [{ docNumber: { contains: q } }, { title: { contains: q } }];
+  if (category) where.category = category;
+  if (status) where.status = status;
+  if (department) where.department = { contains: department };
+  if (folderId) where.folderId = folderId;
+
+  const allowedSortFields = ["createdAt", "updatedAt", "docNumber", "title", "status"] as const;
+  const field = allowedSortFields.includes(sortBy as typeof allowedSortFields[number]) ? sortBy : "updatedAt";
+  const orderBy = { [field]: sortOrder === "asc" ? "asc" : "desc" } as const;
+
+  const [documents, total] = await Promise.all([
+    prisma.document.findMany({
+      where,
+      orderBy,
+      skip: (page - 1) * pageSize,
+      take: pageSize,
+      include: {
+        owner: { select: ownerSelect },
+        folder: true,
+        versions: { orderBy: { createdAt: "desc" }, take: 1 },
+      },
+    }),
+    prisma.document.count({ where }),
+  ]);
+
+  return Response.json({
+    documents,
+    total,
+    page,
+    pageSize,
+    totalPages: Math.ceil(total / pageSize),
   });
-  return Response.json(documents);
 }
 
 export async function POST(request: NextRequest) {
