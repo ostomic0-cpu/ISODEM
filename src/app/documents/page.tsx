@@ -35,7 +35,7 @@ type QueryParams = {
 };
 
 const categoryOptions = ["", "SOP", "WI", "Policy", "Form"];
-const statusOptions = ["", "Draft", "Review", "Approved", "Archived"];
+const statusOptions = ["", "Draft", "InReview", "Approved", "Obsolete"];
 const sortOptions = [
   { value: "updatedAt", label: "อัปเดตล่าสุด" },
   { value: "createdAt", label: "วันที่สร้าง" },
@@ -178,12 +178,6 @@ export default function DocumentsPage() {
             <option value="WI">WI</option>
             <option value="Policy">Policy</option>
             <option value="Form">Form</option>
-          </Select>
-          <Select name="status" defaultValue="Draft">
-            <option value="Draft">ฉบับร่าง</option>
-            <option value="Review">รอตรวจทาน</option>
-            <option value="Approved">อนุมัติแล้ว</option>
-            <option value="Archived">เก็บถาวร</option>
           </Select>
           <Input name="department" placeholder="แผนก" required />
           <Select name="folderId" defaultValue={folders[0]?.id ?? "root-folder"}>

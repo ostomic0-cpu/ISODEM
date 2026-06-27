@@ -17,6 +17,7 @@ export function thaiStatus(status: string) {
     Approved: "อนุมัติแล้ว",
     Archived: "เก็บถาวร",
     InReview: "กำลังตรวจทาน",
+    Obsolete: "ล้าสมัย",
     Rejected: "ไม่อนุมัติ",
     Scheduled: "วางแผนแล้ว",
     InProgress: "กำลังดำเนินการ",
