@@ -1,0 +1,91 @@
+"use client";
+
+import Link from "next/link";
+import { useEffect, useState } from "react";
+import { StatusBadge } from "@/components/shared/status-badge";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Select } from "@/components/ui/select";
+import { Table, Td, Th } from "@/components/ui/table";
+import { formatDate } from "@/lib/utils";
+
+type Audit = { id: string; title: string; scheduleDate: string; status: string; findings: unknown[] };
+
+export default function AuditsPage() {
+  const [audits, setAudits] = useState<Audit[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+  const [reloadKey, setReloadKey] = useState(0);
+
+  useEffect(() => {
+    async function loadAudits() {
+      setLoading(true);
+      const response = await fetch("/api/audits");
+      if (!response.ok) setError("โหลดรายการตรวจประเมินไม่สำเร็จ");
+      else setAudits(await response.json());
+      setLoading(false);
+    }
+
+    loadAudits();
+  }, [reloadKey]);
+
+  async function submit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setSaving(true);
+    const form = new FormData(event.currentTarget);
+    const response = await fetch("/api/audits", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(Object.fromEntries(form)),
+    });
+    setSaving(false);
+    if (!response.ok) setError("สร้างแผนตรวจประเมินไม่สำเร็จ");
+    else {
+      event.currentTarget.reset();
+      setReloadKey((key) => key + 1);
+    }
+  }
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-2xl font-semibold">ระบบตรวจประเมิน</h1>
+        <p className="text-sm text-slate-500">วางแผน ตรวจติดตาม และบันทึกข้อค้นพบ</p>
+      </div>
+      <Card>
+        <form onSubmit={submit} className="grid gap-3 md:grid-cols-[1fr_auto_auto]">
+          <Input name="title" placeholder="หัวข้อการตรวจประเมิน" required />
+          <Input name="scheduleDate" type="date" required />
+          <Select name="status" defaultValue="Scheduled">
+            <option value="Scheduled">วางแผนแล้ว</option>
+            <option value="InProgress">กำลังดำเนินการ</option>
+            <option value="Completed">เสร็จสิ้น</option>
+            <option value="Cancelled">ยกเลิก</option>
+          </Select>
+          <input type="hidden" name="checklistData" value="[]" />
+          <Button disabled={saving} className="md:col-span-3">{saving ? "กำลังบันทึก..." : "สร้างแผนตรวจ"}</Button>
+        </form>
+      </Card>
+      {error ? <p className="rounded-md bg-rose-50 p-3 text-sm text-rose-700">{error}</p> : null}
+      <Card className="overflow-x-auto">
+        {loading ? <p className="text-slate-500">กำลังโหลดรายการตรวจประเมิน...</p> : (
+          <Table>
+            <thead><tr><Th>หัวข้อ</Th><Th>วันที่</Th><Th>สถานะ</Th><Th>ข้อค้นพบ</Th></tr></thead>
+            <tbody>
+              {audits.map((audit) => (
+                <tr key={audit.id}>
+                  <Td><Link className="font-medium text-teal-700" href={`/audits/${audit.id}`}>{audit.title}</Link></Td>
+                  <Td>{formatDate(audit.scheduleDate)}</Td>
+                  <Td><StatusBadge status={audit.status} /></Td>
+                  <Td>{audit.findings.length}</Td>
+                </tr>
+              ))}
+            </tbody>
+          </Table>
+        )}
+      </Card>
+    </div>
+  );
+}

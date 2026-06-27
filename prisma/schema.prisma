@@ -1,0 +1,144 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                        String            @id @default(cuid())
+  email                     String            @unique
+  passwordHash              String
+  name                      String
+  department                String
+  roleId                    String
+  role                      Role              @relation(fields: [roleId], references: [id])
+  isActive                  Boolean           @default(true)
+  documents                 Document[]
+  submittedDocumentVersions DocumentVersion[] @relation("SubmittedVersions")
+  approvedDocumentVersions  DocumentVersion[] @relation("ApprovedVersions")
+  audits                    Audit[]
+  capas                     CAPA[]
+  createdAt                 DateTime          @default(now())
+  updatedAt                 DateTime          @updatedAt
+}
+
+model Role {
+  id          String       @id @default(cuid())
+  name        String       @unique
+  description String?
+  users       User[]
+  permissions Permission[]
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+}
+
+model Permission {
+  id        String   @id @default(cuid())
+  module    String
+  action    String
+  roleId    String
+  role      Role     @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([module, action, roleId])
+}
+
+model Folder {
+  id        String     @id @default(cuid())
+  name      String
+  parentId  String?
+  parent    Folder?    @relation("FolderTree", fields: [parentId], references: [id], onDelete: Cascade)
+  children  Folder[]   @relation("FolderTree")
+  documents Document[]
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+}
+
+model Document {
+  id          String            @id @default(cuid())
+  docNumber   String            @unique
+  title       String
+  category    String
+  status      String
+  ownerId     String
+  owner       User              @relation(fields: [ownerId], references: [id])
+  department  String
+  folderId    String
+  folder      Folder            @relation(fields: [folderId], references: [id])
+  versions    DocumentVersion[]
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+}
+
+model DocumentCounter {
+  id           String   @id @default(cuid())
+  category     String
+  year         Int
+  nextSequence Int      @default(1)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@unique([category, year])
+}
+
+model DocumentVersion {
+  id               String    @id @default(cuid())
+  versionNumber    String
+  originalFilename String
+  storedFilename   String
+  filePath         String
+  changeSummary    String
+  status           String
+  submittedById    String
+  submittedBy      User      @relation("SubmittedVersions", fields: [submittedById], references: [id])
+  approvedById     String?
+  approvedBy       User?     @relation("ApprovedVersions", fields: [approvedById], references: [id])
+  documentId       String
+  document         Document  @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+}
+
+model Audit {
+  id            String         @id @default(cuid())
+  title         String
+  scheduleDate  DateTime
+  status        String
+  auditorId     String
+  auditor       User           @relation(fields: [auditorId], references: [id])
+  checklistData String
+  findings      AuditFinding[]
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+}
+
+model AuditFinding {
+  id          String   @id @default(cuid())
+  type        String
+  description String
+  status      String
+  auditId     String
+  audit       Audit    @relation(fields: [auditId], references: [id], onDelete: Cascade)
+  capa        CAPA?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model CAPA {
+  id                String       @id @default(cuid())
+  findingId         String       @unique
+  finding           AuditFinding @relation(fields: [findingId], references: [id], onDelete: Cascade)
+  rcaNotes          String
+  actionPlan        String
+  verificationNotes String?
+  status            String
+  assigneeId        String
+  assignee          User         @relation(fields: [assigneeId], references: [id])
+  targetDate        DateTime
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+}

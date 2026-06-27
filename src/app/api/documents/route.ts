@@ -1,0 +1,113 @@
+import { mkdir, writeFile } from "node:fs/promises";
+import path from "node:path";
+import { randomUUID } from "node:crypto";
+import { Prisma } from "@prisma/client";
+import { type NextRequest } from "next/server";
+import { prisma } from "@/lib/prisma";
+import { requireApiAuth } from "@/lib/auth";
+
+const uploadDir = path.join(process.cwd(), "public", "uploads", "documents");
+const ownerSelect = { id: true, email: true, name: true, department: true, roleId: true, isActive: true, createdAt: true, updatedAt: true };
+
+async function generateDocNumber(tx: Prisma.TransactionClient, category: string): Promise<string> {
+  const year = new Date().getFullYear();
+  let counter = await tx.documentCounter.findUnique({
+    where: { category_year: { category, year } },
+  });
+  if (!counter) {
+    counter = await tx.documentCounter.create({
+      data: { category, year, nextSequence: 1 },
+    });
+  }
+  const seq = counter.nextSequence;
+  await tx.documentCounter.update({
+    where: { id: counter.id },
+    data: { nextSequence: seq + 1 },
+  });
+  return `${category}-${year}-${String(seq).padStart(3, "0")}`;
+}
+
+export async function GET(request: NextRequest) {
+  const auth = await requireApiAuth(request, "documents", "read");
+  if ("error" in auth) return auth.error;
+  const documents = await prisma.document.findMany({
+    orderBy: { updatedAt: "desc" },
+    include: {
+      owner: { select: ownerSelect },
+      folder: true,
+      versions: { orderBy: { createdAt: "desc" }, take: 1 },
+    },
+  });
+  return Response.json(documents);
+}
+
+export async function POST(request: NextRequest) {
+  const auth = await requireApiAuth(request, "documents", "write");
+  if ("error" in auth) return auth.error;
+  const form = await request.formData();
+  const file = form.get("file");
+  if (!(file instanceof File)) return Response.json({ error: "กรุณาแนบไฟล์" }, { status: 400 });
+
+  await mkdir(uploadDir, { recursive: true });
+  const ext = path.extname(file.name);
+  const storedFilename = `${randomUUID()}${ext}`;
+  const filePath = `/uploads/documents/${storedFilename}`;
+  await writeFile(path.join(uploadDir, storedFilename), Buffer.from(await file.arrayBuffer()));
+
+  const category = String(form.get("category") || "SOP");
+  const requestedDocNumber = String(form.get("docNumber") ?? "").trim();
+  const canOverrideDocNumber = requestedDocNumber && (auth.session.role === "Admin" || auth.session.role === "QA");
+  const documentData = (docNumber: string) => ({
+    docNumber,
+      title: String(form.get("title") ?? ""),
+      category,
+      status: String(form.get("status") || "Draft"),
+      department: String(form.get("department") ?? auth.session.department),
+      ownerId: auth.session.id,
+      folderId: String(form.get("folderId") ?? "root-folder"),
+      versions: {
+        create: {
+          versionNumber: String(form.get("versionNumber") || "1.0"),
+          originalFilename: file.name,
+          storedFilename,
+          filePath,
+          changeSummary: String(form.get("changeSummary") || "สร้างเอกสารใหม่"),
+          status: "Draft",
+          submittedById: auth.session.id,
+        },
+      },
+  });
+
+  try {
+    if (canOverrideDocNumber) {
+      const existing = await prisma.document.findUnique({
+        where: { docNumber: requestedDocNumber },
+        select: { id: true },
+      });
+      if (existing) {
+        return Response.json({ error: "เลขที่เอกสารนี้มีอยู่ในระบบแล้ว" }, { status: 400 });
+      }
+
+      const document = await prisma.document.create({
+        data: documentData(requestedDocNumber),
+        include: { versions: true },
+      });
+      return Response.json(document, { status: 201 });
+    }
+
+    const document = await prisma.$transaction(async (tx) => {
+      const docNumber = await generateDocNumber(tx, category);
+      return tx.document.create({
+        data: documentData(docNumber),
+        include: { versions: true },
+      });
+    });
+
+    return Response.json(document, { status: 201 });
+  } catch (error) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+      return Response.json({ error: "เลขที่เอกสารนี้มีอยู่ในระบบแล้ว" }, { status: 400 });
+    }
+    return Response.json({ error: "บันทึกเอกสารไม่สำเร็จ" }, { status: 500 });
+  }
+}
