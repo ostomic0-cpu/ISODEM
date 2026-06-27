@@ -1,6 +1,7 @@
 import { type NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireApiAuth } from "@/lib/auth";
+import { logActivity } from "@/lib/activity";
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const auth = await requireApiAuth(request, "capas", "read");
@@ -26,6 +27,18 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       targetDate: body.targetDate ? new Date(body.targetDate) : undefined,
     },
   });
+  if (body.status) {
+    logActivity(auth.session.id, "capa.status_changed", {
+      capaId: id,
+      status: body.status,
+    });
+  }
+  if (body.targetDate) {
+    logActivity(auth.session.id, "capa.due_date_changed", {
+      capaId: id,
+      targetDate: body.targetDate,
+    });
+  }
   return Response.json(capa);
 }
 

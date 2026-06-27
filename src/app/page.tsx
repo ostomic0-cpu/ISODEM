@@ -7,8 +7,8 @@ import { formatDate } from "@/lib/utils";
 
 type DashboardData = {
   documents: Array<{ id: string; title: string; status: string; updatedAt: string }>;
-  audits: Array<{ id: string; title: string; status: string; scheduleDate: string }>;
-  capas: Array<{ id: string; status: string; targetDate: string; finding: { description: string } }>;
+  audits: Array<{ id: string; title: string; status: string; scheduleDate: string; isOverdue?: boolean }>;
+  capas: Array<{ id: string; status: string; targetDate: string; isOverdue?: boolean; finding: { description: string } }>;
 };
 
 export default function DashboardPage() {
@@ -34,10 +34,12 @@ export default function DashboardPage() {
   if (error) return <p className="rounded-md bg-rose-50 p-4 text-rose-700">{error}</p>;
   if (!data) return <p className="text-slate-500">กำลังโหลดแดชบอร์ด...</p>;
 
+  const overdueCount = data.audits.filter((audit) => audit.isOverdue).length + data.capas.filter((capa) => capa.isOverdue).length;
   const kpis = [
     { label: "เอกสารทั้งหมด", value: data.documents.length },
     { label: "การตรวจประเมิน", value: data.audits.length },
     { label: "CAPA เปิดอยู่", value: data.capas.filter((capa) => capa.status !== "Closed").length },
+    { label: "เกินกำหนด", value: overdueCount, urgent: true },
   ];
 
   return (
@@ -46,11 +48,11 @@ export default function DashboardPage() {
         <h1 className="text-2xl font-semibold">แดชบอร์ด</h1>
         <p className="text-sm text-slate-500">ภาพรวมระบบบริหารคุณภาพ</p>
       </div>
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-4">
         {kpis.map((kpi) => (
           <Card key={kpi.label}>
             <p className="text-sm text-slate-500">{kpi.label}</p>
-            <p className="mt-2 text-3xl font-semibold">{kpi.value}</p>
+            <p className={`mt-2 text-3xl font-semibold ${kpi.urgent ? "text-red-600" : ""}`}>{kpi.value}</p>
           </Card>
         ))}
       </div>

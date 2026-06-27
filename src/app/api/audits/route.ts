@@ -3,6 +3,11 @@ import { prisma } from "@/lib/prisma";
 import { requireApiAuth } from "@/lib/auth";
 import { logActivity } from "@/lib/activity";
 
+function dateIsPast(date: Date): boolean {
+  const today = new Date().toISOString().slice(0, 10);
+  return date.toISOString().slice(0, 10) < today;
+}
+
 export async function GET(request: NextRequest) {
   const auth = await requireApiAuth(request, "audits", "read");
   if ("error" in auth) return auth.error;
@@ -10,7 +15,12 @@ export async function GET(request: NextRequest) {
     orderBy: { scheduleDate: "desc" },
     include: { auditor: true, findings: { include: { capa: true } } },
   });
-  return Response.json(audits);
+  return Response.json(
+    audits.map((audit) => ({
+      ...audit,
+      isOverdue: dateIsPast(audit.scheduleDate) && !["Completed", "Cancelled", "Closed"].includes(audit.status),
+    })),
+  );
 }
 
 export async function POST(request: NextRequest) {

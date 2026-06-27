@@ -10,7 +10,7 @@ import { Select } from "@/components/ui/select";
 import { Table, Td, Th } from "@/components/ui/table";
 import { formatDate } from "@/lib/utils";
 
-type Audit = { id: string; title: string; scheduleDate: string; status: string; findings: unknown[] };
+type Audit = { id: string; title: string; scheduleDate: string; status: string; isOverdue?: boolean; findings: unknown[] };
 
 export default function AuditsPage() {
   const [audits, setAudits] = useState<Audit[]>([]);
@@ -78,7 +78,14 @@ export default function AuditsPage() {
                 <tr key={audit.id}>
                   <Td><Link className="font-medium text-teal-700" href={`/audits/${audit.id}`}>{audit.title}</Link></Td>
                   <Td>{formatDate(audit.scheduleDate)}</Td>
-                  <Td><StatusBadge status={audit.status} /></Td>
+                  <Td>
+                    <StatusBadge status={audit.status} />
+                    {audit.isOverdue && (
+                      <span className="ml-2 inline-flex items-center rounded-full bg-rose-100 px-2.5 py-0.5 text-xs font-medium text-rose-800">
+                        เกินกำหนด
+                      </span>
+                    )}
+                  </Td>
                   <Td>{audit.findings.length}</Td>
                 </tr>
               ))}

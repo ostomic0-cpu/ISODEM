@@ -1,6 +1,7 @@
 import { type NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireApiAuth } from "@/lib/auth";
+import { logActivity } from "@/lib/activity";
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const auth = await requireApiAuth(request, "audits", "read");
@@ -25,6 +26,13 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       checklistData: body.checklistData,
     },
   });
+  if (body.status) {
+    logActivity(auth.session.id, "audit.status_changed", {
+      auditId: id,
+      title: audit.title,
+      status: body.status,
+    });
+  }
   return Response.json(audit);
 }
 

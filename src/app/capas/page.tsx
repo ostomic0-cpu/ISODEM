@@ -12,7 +12,7 @@ import { formatDate } from "@/lib/utils";
 
 type FindingOption = { id: string; description: string; capa?: unknown };
 type Audit = { findings: FindingOption[] };
-type Capa = { id: string; status: string; targetDate: string; finding: { description: string } };
+type Capa = { id: string; status: string; targetDate: string; isOverdue?: boolean; finding: { description: string } };
 
 export default function CapasPage() {
   const [capas, setCapas] = useState<Capa[]>([]);
@@ -84,7 +84,14 @@ export default function CapasPage() {
                 <tr key={capa.id}>
                   <Td><Link className="font-medium text-teal-700" href={`/capas/${capa.id}`}>{capa.finding.description}</Link></Td>
                   <Td>{formatDate(capa.targetDate)}</Td>
-                  <Td><StatusBadge status={capa.status} /></Td>
+                  <Td>
+                    <StatusBadge status={capa.status} />
+                    {capa.isOverdue && (
+                      <span className="ml-2 inline-flex items-center rounded-full bg-rose-100 px-2.5 py-0.5 text-xs font-medium text-rose-800">
+                        เกินกำหนด
+                      </span>
+                    )}
+                  </Td>
                 </tr>
               ))}
             </tbody>
