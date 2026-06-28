@@ -58,6 +58,7 @@ export default function DocumentsPage() {
     sortBy: "updatedAt", sortOrder: "desc", page: 1, pageSize: 20,
   });
   const searchTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const [filtersExpanded, setFiltersExpanded] = useState(false);
 
   async function loadDocuments(params: QueryParams) {
     await Promise.resolve();
@@ -198,53 +199,64 @@ export default function DocumentsPage() {
       {error ? <p className="rounded-md bg-rose-50 p-3 text-sm text-rose-700">{error}</p> : null}
       {/* Filter Bar */}
       <Card className="p-4">
-        <div className="flex flex-wrap items-end gap-3">
-          <div className="min-w-[200px] flex-1">
-            <label className="mb-1 block text-xs font-medium text-slate-500">ค้นหา</label>
-            <Input
-              placeholder="ค้นหาด้วยเลขที่หรือชื่อเอกสาร..."
-              defaultValue={filters.q}
-              onChange={(e) => {
-                if (searchTimer.current) clearTimeout(searchTimer.current);
-                searchTimer.current = setTimeout(() => updateFilters({ q: e.target.value }), 300);
-              }}
-            />
-          </div>
-          <div>
-            <label className="mb-1 block text-xs font-medium text-slate-500">ประเภท</label>
-            <Select value={filters.category} onChange={(e) => updateFilters({ category: e.target.value })}>
-              {categoryOptions.map((o) => <option key={o} value={o}>{o || "ทั้งหมด"}</option>)}
-            </Select>
-          </div>
-          <div>
-            <label className="mb-1 block text-xs font-medium text-slate-500">สถานะ</label>
-            <Select value={filters.status} onChange={(e) => updateFilters({ status: e.target.value })}>
-              {statusOptions.map((o) => <option key={o} value={o}>{o || "ทั้งหมด"}</option>)}
-            </Select>
-          </div>
-          <div>
-            <label className="mb-1 block text-xs font-medium text-slate-500">แผนก</label>
-            <Input placeholder="แผนก..." value={filters.department} onChange={(e) => updateFilters({ department: e.target.value })} className="w-32" />
-          </div>
-          <div>
-            <label className="mb-1 block text-xs font-medium text-slate-500">โฟลเดอร์</label>
-            <Select value={filters.folderId} onChange={(e) => updateFilters({ folderId: e.target.value })}>
-              <option value="">ทั้งหมด</option>
-              {folders.map((f) => <option key={f.id} value={f.id}>{f.name}</option>)}
-            </Select>
-          </div>
-          <div>
-            <label className="mb-1 block text-xs font-medium text-slate-500">จัดเรียง</label>
-            <div className="flex gap-1">
-              <Select value={filters.sortBy} onChange={(e) => updateFilters({ sortBy: e.target.value })}>
-                {sortOptions.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-              </Select>
-              <Button variant="secondary" onClick={() => updateFilters({ sortOrder: filters.sortOrder === "asc" ? "desc" : "asc" })}>
-                {filters.sortOrder === "asc" ? "↑" : "↓"}
-              </Button>
+        <div className="space-y-3">
+          {/* Top row: Search + Toggle + Clear */}
+          <div className="flex items-end gap-3">
+            <div className="min-w-[200px] flex-1">
+              <label className="mb-1 block text-xs font-medium text-slate-500">ค้นหา</label>
+              <Input
+                placeholder="ค้นหาด้วยเลขที่หรือชื่อเอกสาร..."
+                defaultValue={filters.q}
+                onChange={(e) => {
+                  if (searchTimer.current) clearTimeout(searchTimer.current);
+                  searchTimer.current = setTimeout(() => updateFilters({ q: e.target.value }), 300);
+                }}
+              />
             </div>
+            <Button variant="secondary" onClick={() => setFiltersExpanded((v) => !v)} className="shrink-0">
+              ตัวกรอง {filtersExpanded ? "▲" : "▼"}
+            </Button>
+            <Button variant="secondary" onClick={clearFilters} className="shrink-0">ล้าง</Button>
           </div>
-          <Button variant="secondary" onClick={clearFilters}>ล้างตัวกรอง</Button>
+          {/* Advanced filters panel */}
+          {filtersExpanded ? (
+            <div className="flex flex-wrap items-end gap-3">
+              <div>
+                <label className="mb-1 block text-xs font-medium text-slate-500">ประเภท</label>
+                <Select value={filters.category} onChange={(e) => updateFilters({ category: e.target.value })}>
+                  {categoryOptions.map((o) => <option key={o} value={o}>{o || "ทั้งหมด"}</option>)}
+                </Select>
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-medium text-slate-500">สถานะ</label>
+                <Select value={filters.status} onChange={(e) => updateFilters({ status: e.target.value })}>
+                  {statusOptions.map((o) => <option key={o} value={o}>{o || "ทั้งหมด"}</option>)}
+                </Select>
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-medium text-slate-500">แผนก</label>
+                <Input placeholder="แผนก..." value={filters.department} onChange={(e) => updateFilters({ department: e.target.value })} className="w-32" />
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-medium text-slate-500">โฟลเดอร์</label>
+                <Select value={filters.folderId} onChange={(e) => updateFilters({ folderId: e.target.value })}>
+                  <option value="">ทั้งหมด</option>
+                  {folders.map((f) => <option key={f.id} value={f.id}>{f.name}</option>)}
+                </Select>
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-medium text-slate-500">จัดเรียง</label>
+                <div className="flex gap-1">
+                  <Select value={filters.sortBy} onChange={(e) => updateFilters({ sortBy: e.target.value })}>
+                    {sortOptions.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+                  </Select>
+                  <Button variant="secondary" onClick={() => updateFilters({ sortOrder: filters.sortOrder === "asc" ? "desc" : "asc" })}>
+                    {filters.sortOrder === "asc" ? "↑" : "↓"}
+                  </Button>
+                </div>
+              </div>
+            </div>
+          ) : null}
         </div>
       </Card>
       <Card className="overflow-x-auto">
