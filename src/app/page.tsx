@@ -35,7 +35,34 @@ export default function DashboardPage() {
   if (error) return <p className="rounded-md bg-rose-50 p-4 text-rose-700">{error}</p>;
   if (!data) return <p className="text-slate-500">กำลังโหลดแดชบอร์ด...</p>;
 
-  const overdueCount = data.audits.filter((audit) => audit.isOverdue).length + data.capas.filter((capa) => capa.isOverdue).length;
+  const overdueAudits = data.audits.filter((audit) => audit.isOverdue);
+  const overdueCapas = data.capas.filter((capa) => capa.isOverdue);
+  const overdueCount = overdueAudits.length + overdueCapas.length;
+
+  const overdueItems: Array<{
+    id: string;
+    type: "audit" | "capa";
+    title: string;
+    date: string;
+    status: string;
+  }> = [
+    ...overdueAudits.map((a) => ({
+      id: a.id,
+      type: "audit" as const,
+      title: a.title,
+      date: a.scheduleDate,
+      status: a.status,
+    })),
+    ...overdueCapas.map((c) => ({
+      id: c.id,
+      type: "capa" as const,
+      title: c.finding?.description || "CAPA",
+      date: c.targetDate,
+      status: c.status,
+    })),
+  ]
+    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+    .slice(0, 10);
   const kpis = [
     { label: "เอกสารทั้งหมด", value: data.documents.length },
     { label: "การตรวจประเมิน", value: data.audits.length },
@@ -57,6 +84,56 @@ export default function DashboardPage() {
           </Card>
         ))}
       </div>
+      <Card>
+        <div className="flex items-center justify-between">
+          <h2 className="font-semibold">รายการเกินกำหนด</h2>
+          {overdueCount > 0 ? (
+            <span className="text-sm text-slate-500">{overdueCount} รายการ</span>
+          ) : null}
+        </div>
+        <div className="mt-3 space-y-2">
+          {overdueItems.length > 0 ? (
+            <>
+              {overdueItems.map((item) => (
+                <Link
+                  key={item.id}
+                  href={item.type === "audit" ? `/audits/${item.id}` : `/capas/${item.id}`}
+                  className="flex items-center justify-between gap-3 rounded-md border border-slate-200 p-3 hover:bg-slate-50"
+                >
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2">
+                      <span
+                        className={`shrink-0 rounded-md px-2 py-0.5 text-xs font-medium ${
+                          item.type === "audit"
+                            ? "bg-blue-50 text-blue-700"
+                            : "bg-amber-50 text-amber-700"
+                        }`}
+                      >
+                        {item.type === "audit" ? "การตรวจประเมิน" : "CAPA"}
+                      </span>
+                      <p className="truncate text-sm font-medium text-slate-900">
+                        {item.title}
+                      </p>
+                    </div>
+                    <p className="mt-1 text-xs text-slate-500">
+                      วันที่กำหนด:{" "}
+                      {formatDate(item.date)}
+                    </p>
+                  </div>
+                  <StatusBadge status={item.status} />
+                </Link>
+              ))}
+              {overdueCount > overdueItems.length ? (
+                <p className="text-center text-xs text-slate-400">
+                  และอีก {overdueCount - overdueItems.length} รายการ
+                </p>
+              ) : null}
+            </>
+          ) : (
+            <p className="text-sm text-slate-500">✅ ไม่มีรายการที่เกินกำหนด</p>
+          )}
+        </div>
+      </Card>
       <Card>
         <h2 className="mb-4 font-semibold">กิจกรรมล่าสุด</h2>
         <div className="space-y-3">
