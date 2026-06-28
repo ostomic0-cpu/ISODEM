@@ -17,6 +17,7 @@ export default function AuditsPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
   const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
@@ -30,6 +31,12 @@ export default function AuditsPage() {
 
     loadAudits();
   }, [reloadKey]);
+
+  useEffect(() => {
+    if (!success) return;
+    const timer = setTimeout(() => setSuccess(""), 3000);
+    return () => clearTimeout(timer);
+  }, [success]);
 
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -45,6 +52,7 @@ export default function AuditsPage() {
     else {
       event.currentTarget.reset();
       setReloadKey((key) => key + 1);
+      setSuccess("สร้างแผนตรวจประเมินสำเร็จ");
     }
   }
 
@@ -68,6 +76,7 @@ export default function AuditsPage() {
           <Button disabled={saving} className="md:col-span-3">{saving ? "กำลังบันทึก..." : "สร้างแผนตรวจ"}</Button>
         </form>
       </Card>
+      {success ? <p className="rounded-md bg-emerald-50 p-3 text-sm text-emerald-700">{success}</p> : null}
       {error ? <p className="rounded-md bg-rose-50 p-3 text-sm text-rose-700">{error}</p> : null}
       <Card className="overflow-x-auto">
         {loading ? <p className="text-slate-500">กำลังโหลดรายการตรวจประเมิน...</p> : (

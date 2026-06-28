@@ -9,7 +9,14 @@ import { Select } from "@/components/ui/select";
 import { formatDate } from "@/lib/utils";
 
 type Finding = { id: string; type: string; description: string; status: string; capa?: { id: string } | null };
-type AuditDetail = { id: string; title: string; scheduleDate: string; status: string; findings: Finding[] };
+type AuditDetail = { id: string; title: string; scheduleDate: string; status: string; isOverdue?: boolean; findings: Finding[] };
+
+const statusBanners: Record<string, { label: string; className: string }> = {
+  Scheduled: { label: "วางแผนแล้ว", className: "border-blue-200 bg-blue-50 text-blue-900" },
+  InProgress: { label: "กำลังดำเนินการ", className: "border-amber-200 bg-amber-50 text-amber-900" },
+  Completed: { label: "เสร็จสิ้น", className: "border-emerald-200 bg-emerald-50 text-emerald-900" },
+  Cancelled: { label: "ยกเลิก", className: "border-rose-200 bg-rose-50 text-rose-900" },
+};
 
 export default function AuditDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -50,11 +57,29 @@ export default function AuditDetailPage({ params }: { params: Promise<{ id: stri
   if (error) return <p className="rounded-md bg-rose-50 p-4 text-rose-700">{error}</p>;
   if (loading || !audit) return <p className="text-slate-500">กำลังโหลดรายละเอียดการตรวจ...</p>;
 
+  const statusBanner = statusBanners[audit.status] || statusBanners.Scheduled;
+
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-semibold">{audit.title}</h1>
         <p className="text-sm text-slate-500">{formatDate(audit.scheduleDate)}</p>
+      </div>
+      <div className={`rounded-lg border p-5 ${statusBanner.className}`}>
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <p className="text-sm font-medium opacity-80">สถานะการตรวจ</p>
+            <div className="mt-1 flex items-center gap-3">
+              <p className="text-2xl font-semibold">{statusBanner.label}</p>
+              {audit.isOverdue && (
+                <span className="inline-flex items-center rounded-full bg-rose-100 px-2.5 py-0.5 text-xs font-medium text-rose-800">
+                  เกินกำหนด
+                </span>
+              )}
+            </div>
+            <p className="mt-2 text-sm opacity-70">{formatDate(audit.scheduleDate)}</p>
+          </div>
+        </div>
       </div>
       <Card>
         <form onSubmit={submit} className="grid gap-3 md:grid-cols-[160px_1fr_auto]">

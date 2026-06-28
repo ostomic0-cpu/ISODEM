@@ -3,13 +3,26 @@ import { prisma } from "@/lib/prisma";
 import { requireApiAuth } from "@/lib/auth";
 import { logActivity } from "@/lib/activity";
 
+function dateIsPast(date: Date): boolean {
+  const today = new Date();
+  const y = today.getFullYear();
+  const m = String(today.getMonth() + 1).padStart(2, "0");
+  const d = String(today.getDate()).padStart(2, "0");
+  const todayStr = `${y}-${m}-${d}`;
+  const targetStr = typeof date === "string" ? date : `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+  return targetStr < todayStr;
+}
+
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const auth = await requireApiAuth(request, "audits", "read");
   if ("error" in auth) return auth.error;
   const { id } = await params;
   const audit = await prisma.audit.findUnique({ where: { id }, include: { auditor: true, findings: { include: { capa: true } } } });
   if (!audit) return Response.json({ error: "ไม่พบการตรวจประเมิน" }, { status: 404 });
-  return Response.json(audit);
+  return Response.json({
+    ...audit,
+    isOverdue: dateIsPast(audit.scheduleDate) && !["Completed", "Cancelled", "Closed"].includes(audit.status),
+  });
 }
 
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {

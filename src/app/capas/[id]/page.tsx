@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { formatDate } from "@/lib/utils";
 
-type Capa = { id: string; rcaNotes: string; actionPlan: string; verificationNotes?: string | null; status: string; targetDate: string; finding: { description: string } };
+type Capa = { id: string; rcaNotes: string; actionPlan: string; verificationNotes?: string | null; status: string; targetDate: string; isOverdue?: boolean; finding: { description: string } };
 
 export default function CapaDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -54,8 +54,15 @@ export default function CapaDetailPage({ params }: { params: Promise<{ id: strin
       </div>
       <Card>
         <div className="mb-4 flex items-center justify-between">
-          <p className="text-sm text-slate-500">กำหนดเสร็จ {formatDate(capa.targetDate)}</p>
-          <StatusBadge status={capa.status} />
+          <div className="flex items-center gap-3">
+            <p className="text-sm text-slate-500">กำหนดเสร็จ {formatDate(capa.targetDate)}</p>
+            {capa.isOverdue && (
+              <span className="inline-flex items-center rounded-full bg-rose-100 px-2.5 py-0.5 text-xs font-medium text-rose-800">
+                เกินกำหนด
+              </span>
+            )}
+            <StatusBadge status={capa.status} />
+          </div>
         </div>
         <form onSubmit={submit} className="grid gap-3 md:grid-cols-2">
           <Input name="rcaNotes" defaultValue={capa.rcaNotes} placeholder="บันทึก RCA" />

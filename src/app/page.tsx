@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import { Card } from "@/components/ui/card";
 import { StatusBadge } from "@/components/shared/status-badge";
@@ -62,7 +63,11 @@ export default function DashboardPage() {
           {data.documents.slice(0, 5).map((document) => (
             <div key={document.id} className="flex items-center justify-between border-b border-slate-100 pb-3">
               <div>
-                <p className="font-medium">{document.title}</p>
+                <p>
+                  <Link href={"/documents/" + document.id} className="font-medium hover:text-teal-700">
+                    {document.title}
+                  </Link>
+                </p>
                 <p className="text-sm text-slate-500">อัปเดต {formatDate(document.updatedAt)}</p>
               </div>
               <StatusBadge status={document.status} />

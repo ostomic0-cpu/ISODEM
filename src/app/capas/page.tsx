@@ -20,6 +20,7 @@ export default function CapasPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
   const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
@@ -38,6 +39,12 @@ export default function CapasPage() {
     loadCapas();
   }, [reloadKey]);
 
+  useEffect(() => {
+    if (!success) return;
+    const timer = setTimeout(() => setSuccess(""), 3000);
+    return () => clearTimeout(timer);
+  }, [success]);
+
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setSaving(true);
@@ -51,6 +58,7 @@ export default function CapasPage() {
     else {
       event.currentTarget.reset();
       setReloadKey((key) => key + 1);
+      setSuccess("สร้าง CAPA สำเร็จ");
     }
   }
 
@@ -74,6 +82,7 @@ export default function CapasPage() {
           <Button className="md:col-span-2" disabled={saving}>{saving ? "กำลังบันทึก..." : "สร้าง CAPA"}</Button>
         </form>
       </Card>
+      {success ? <p className="rounded-md bg-emerald-50 p-3 text-sm text-emerald-700">{success}</p> : null}
       {error ? <p className="rounded-md bg-rose-50 p-3 text-sm text-rose-700">{error}</p> : null}
       <Card className="overflow-x-auto">
         {loading ? <p className="text-slate-500">กำลังโหลด CAPA...</p> : (

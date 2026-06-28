@@ -35,12 +35,19 @@ const pageSize = 20;
 const actionLabels: Record<string, string> = {
   "login.success": "เข้าสู่ระบบ",
   "document.created": "สร้างเอกสาร",
+  "document.submitted": "ส่งตรวจสอบ",
+  "document.approved": "อนุมัติเอกสาร",
+  "document.rejected": "ปฏิเสธเอกสาร",
+  "document.obsoleted": "ลบล้างเอกสาร",
   "revision.created": "เพิ่มเวอร์ชัน",
   "user.created": "สร้างผู้ใช้",
   "user.updated": "แก้ไขผู้ใช้",
   "user.disabled": "ปิดใช้งานผู้ใช้",
   "audit.created": "สร้างตรวจประเมิน",
+  "audit.status_changed": "เปลี่ยนสถานะตรวจประเมิน",
   "capa.created": "สร้าง CAPA",
+  "capa.status_changed": "เปลี่ยนสถานะ CAPA",
+  "capa.due_date_changed": "เปลี่ยนกำหนดแล้วเสร็จ",
 };
 
 function parseMetadata(metadata: string): ActivityMetadata | null {
@@ -64,6 +71,14 @@ function metadataDetail(activity: ActivityItem) {
   switch (activity.action) {
     case "document.created":
       return `${valueToText(metadata.docNumber)}: ${valueToText(metadata.title)}`;
+    case "document.submitted":
+      return `${valueToText(metadata.docNumber)}: ${valueToText(metadata.title)} → ส่งตรวจสอบ`;
+    case "document.approved":
+      return `${valueToText(metadata.docNumber)}: ${valueToText(metadata.title)} → อนุมัติ`;
+    case "document.rejected":
+      return `${valueToText(metadata.docNumber)}: ${valueToText(metadata.title)} → ปฏิเสธ`;
+    case "document.obsoleted":
+      return `${valueToText(metadata.docNumber)}: ${valueToText(metadata.title)} → ลบล้าง`;
     case "revision.created":
       return `${valueToText(metadata.documentId)} เวอร์ชัน ${valueToText(metadata.versionNumber)}`;
     case "user.created":
@@ -74,10 +89,16 @@ function metadataDetail(activity: ActivityItem) {
       return valueToText(metadata.targetUserId);
     case "audit.created":
       return `${valueToText(metadata.title)} [${valueToText(metadata.status)}]`;
+    case "audit.status_changed":
+      return `${valueToText(metadata.title)} → ${valueToText(metadata.status)}`;
     case "capa.created":
       return `#${valueToText(metadata.capaId)}`;
+    case "capa.status_changed":
+      return `CAPA #${valueToText(metadata.capaId)} → ${valueToText(metadata.status)}`;
+    case "capa.due_date_changed":
+      return `CAPA #${valueToText(metadata.capaId)} → ${valueToText(metadata.targetDate)}`;
     default:
-      return activity.metadata;
+      return "-";
   }
 }
 
