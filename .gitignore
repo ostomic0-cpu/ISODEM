@@ -49,3 +49,6 @@ prisma.config.ts
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# hermes
+.hermes/
