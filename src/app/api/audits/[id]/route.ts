@@ -17,7 +17,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   const auth = await requireApiAuth(request, "audits", "read");
   if ("error" in auth) return auth.error;
   const { id } = await params;
-  const audit = await prisma.audit.findUnique({ where: { id }, include: { auditor: true, findings: { include: { capa: true } } } });
+  const audit = await prisma.audit.findUnique({ where: { id }, include: { auditor: { select: { id: true, email: true, name: true, department: true, roleId: true, isActive: true, createdAt: true, updatedAt: true } }, findings: { include: { capa: true } } } });
   if (!audit) return Response.json({ error: "ไม่พบการตรวจประเมิน" }, { status: 404 });
   return Response.json({
     ...audit,

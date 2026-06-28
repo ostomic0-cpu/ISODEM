@@ -13,7 +13,7 @@ export async function GET(request: NextRequest) {
   if ("error" in auth) return auth.error;
   const audits = await prisma.audit.findMany({
     orderBy: { scheduleDate: "desc" },
-    include: { auditor: true, findings: { include: { capa: true } } },
+    include: { auditor: { select: { id: true, email: true, name: true, department: true, roleId: true, isActive: true, createdAt: true, updatedAt: true } }, findings: { include: { capa: true } } },
   });
   return Response.json(
     audits.map((audit) => ({

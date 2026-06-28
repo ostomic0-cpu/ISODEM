@@ -17,7 +17,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   const auth = await requireApiAuth(request, "capas", "read");
   if ("error" in auth) return auth.error;
   const { id } = await params;
-  const capa = await prisma.cAPA.findUnique({ where: { id }, include: { assignee: true, finding: { include: { audit: true } } } });
+  const capa = await prisma.cAPA.findUnique({ where: { id }, include: { assignee: { select: { id: true, email: true, name: true, department: true, roleId: true, isActive: true, createdAt: true, updatedAt: true } }, finding: { include: { audit: true } } } });
   if (!capa) return Response.json({ error: "ไม่พบ CAPA" }, { status: 404 });
   return Response.json({
     ...capa,

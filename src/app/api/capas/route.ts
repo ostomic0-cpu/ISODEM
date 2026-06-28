@@ -11,7 +11,7 @@ function dateIsPast(date: Date): boolean {
 export async function GET(request: NextRequest) {
   const auth = await requireApiAuth(request, "capas", "read");
   if ("error" in auth) return auth.error;
-  const capas = await prisma.cAPA.findMany({ orderBy: { targetDate: "asc" }, include: { assignee: true, finding: { include: { audit: true } } } });
+  const capas = await prisma.cAPA.findMany({ orderBy: { targetDate: "asc" }, include: { assignee: { select: { id: true, email: true, name: true, department: true, roleId: true, isActive: true, createdAt: true, updatedAt: true } }, finding: { include: { audit: true } } } });
   return Response.json(
     capas.map((capa) => ({
       ...capa,
