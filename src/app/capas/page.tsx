@@ -22,6 +22,10 @@ export default function CapasPage() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [reloadKey, setReloadKey] = useState(0);
+  const [page, setPage] = useState(1);
+  const pageSize = 15;
+  const totalPages = Math.ceil(capas.length / pageSize);
+  const paginatedCapas = capas.slice((page - 1) * pageSize, page * pageSize);
 
   useEffect(() => {
     async function loadCapas() {
@@ -86,25 +90,41 @@ export default function CapasPage() {
       {error ? <p className="rounded-md bg-rose-50 p-3 text-sm text-rose-700">{error}</p> : null}
       <Card className="overflow-x-auto">
         {loading ? <p className="text-slate-500">กำลังโหลด CAPA...</p> : (
-          <Table>
-            <thead><tr><Th>ข้อค้นพบ</Th><Th>กำหนดเสร็จ</Th><Th>สถานะ</Th></tr></thead>
-            <tbody>
-              {capas.map((capa) => (
-                <tr key={capa.id}>
-                  <Td><Link className="font-medium text-teal-700" href={`/capas/${capa.id}`}>{capa.finding.description}</Link></Td>
-                  <Td>{formatDate(capa.targetDate)}</Td>
-                  <Td>
-                    <StatusBadge status={capa.status} />
-                    {capa.isOverdue && (
-                      <span className="ml-2 inline-flex items-center rounded-full bg-rose-100 px-2.5 py-0.5 text-xs font-medium text-rose-800">
-                        เกินกำหนด
-                      </span>
-                    )}
-                  </Td>
-                </tr>
-              ))}
-            </tbody>
-          </Table>
+          <>
+            <Table>
+              <thead><tr><Th>ข้อค้นพบ</Th><Th>กำหนดเสร็จ</Th><Th>สถานะ</Th></tr></thead>
+              <tbody>
+                {paginatedCapas.map((capa) => (
+                  <tr key={capa.id}>
+                    <Td className="max-w-[200px] truncate"><Link className="font-medium text-teal-700" href={`/capas/${capa.id}`}>{capa.finding.description}</Link></Td>
+                    <Td>{formatDate(capa.targetDate)}</Td>
+                    <Td>
+                      <StatusBadge status={capa.status} />
+                      {capa.isOverdue && (
+                        <span className="ml-2 inline-flex items-center rounded-full bg-rose-100 px-2.5 py-0.5 text-xs font-medium text-rose-800">
+                          เกินกำหนด
+                        </span>
+                      )}
+                    </Td>
+                  </tr>
+                ))}
+              </tbody>
+            </Table>
+            {totalPages > 1 ? (
+              <div className="flex items-center justify-between border-t border-slate-200 px-4 py-3">
+                <p className="text-sm text-slate-500">ทั้งหมด {capas.length} รายการ</p>
+                <div className="flex items-center gap-2">
+                  <Button variant="secondary" disabled={page <= 1} onClick={() => setPage(page - 1)}>ก่อนหน้า</Button>
+                  <span className="text-sm text-slate-600">หน้า {page} / {totalPages}</span>
+                  <Button variant="secondary" disabled={page >= totalPages} onClick={() => setPage(page + 1)}>ถัดไป</Button>
+                </div>
+              </div>
+            ) : capas.length > 0 ? (
+              <div className="border-t border-slate-200 px-4 py-3">
+                <p className="text-sm text-slate-500">ทั้งหมด {capas.length} รายการ</p>
+              </div>
+            ) : null}
+          </>
         )}
       </Card>
     </div>

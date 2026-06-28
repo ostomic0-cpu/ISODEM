@@ -372,14 +372,14 @@ export default function DocumentDetailPage({ params }: { params: Promise<{ id: s
                 <StatusBadge status={version.status} />
               </div>
               <p className="mt-1 text-sm text-slate-600">{version.changeSummary}</p>
-              <p className="mt-1 text-xs text-slate-500">{version.originalFilename} · {formatDate(version.createdAt)}</p>
+              <p className="mt-1 max-w-[200px] truncate text-xs text-slate-500">{version.originalFilename} · {formatDate(version.createdAt)}</p>
             </div>
           ))}
         </div>
       </Card>
 
       {rejectOpen ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-4 sm:mx-4">
           <div className="w-full max-w-lg rounded-lg bg-white p-5 shadow-xl">
             <h2 className="text-lg font-semibold">ปฏิเสธเอกสาร</h2>
             <textarea

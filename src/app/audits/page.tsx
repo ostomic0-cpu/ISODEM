@@ -19,6 +19,10 @@ export default function AuditsPage() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [reloadKey, setReloadKey] = useState(0);
+  const [page, setPage] = useState(1);
+  const pageSize = 15;
+  const totalPages = Math.ceil(audits.length / pageSize);
+  const paginatedAudits = audits.slice((page - 1) * pageSize, page * pageSize);
 
   useEffect(() => {
     async function loadAudits() {
@@ -80,26 +84,42 @@ export default function AuditsPage() {
       {error ? <p className="rounded-md bg-rose-50 p-3 text-sm text-rose-700">{error}</p> : null}
       <Card className="overflow-x-auto">
         {loading ? <p className="text-slate-500">กำลังโหลดรายการตรวจประเมิน...</p> : (
-          <Table>
-            <thead><tr><Th>หัวข้อ</Th><Th>วันที่</Th><Th>สถานะ</Th><Th>ข้อค้นพบ</Th></tr></thead>
-            <tbody>
-              {audits.map((audit) => (
-                <tr key={audit.id}>
-                  <Td><Link className="font-medium text-teal-700" href={`/audits/${audit.id}`}>{audit.title}</Link></Td>
-                  <Td>{formatDate(audit.scheduleDate)}</Td>
-                  <Td>
-                    <StatusBadge status={audit.status} />
-                    {audit.isOverdue && (
-                      <span className="ml-2 inline-flex items-center rounded-full bg-rose-100 px-2.5 py-0.5 text-xs font-medium text-rose-800">
-                        เกินกำหนด
-                      </span>
-                    )}
-                  </Td>
-                  <Td>{audit.findings.length}</Td>
-                </tr>
-              ))}
-            </tbody>
-          </Table>
+          <>
+            <Table>
+              <thead><tr><Th>หัวข้อ</Th><Th>วันที่</Th><Th>สถานะ</Th><Th>ข้อค้นพบ</Th></tr></thead>
+              <tbody>
+                {paginatedAudits.map((audit) => (
+                  <tr key={audit.id}>
+                    <Td className="max-w-[200px] truncate"><Link className="font-medium text-teal-700" href={`/audits/${audit.id}`}>{audit.title}</Link></Td>
+                    <Td>{formatDate(audit.scheduleDate)}</Td>
+                    <Td>
+                      <StatusBadge status={audit.status} />
+                      {audit.isOverdue && (
+                        <span className="ml-2 inline-flex items-center rounded-full bg-rose-100 px-2.5 py-0.5 text-xs font-medium text-rose-800">
+                          เกินกำหนด
+                        </span>
+                      )}
+                    </Td>
+                    <Td>{audit.findings.length}</Td>
+                  </tr>
+                ))}
+              </tbody>
+            </Table>
+            {totalPages > 1 ? (
+              <div className="flex items-center justify-between border-t border-slate-200 px-4 py-3">
+                <p className="text-sm text-slate-500">ทั้งหมด {audits.length} รายการ</p>
+                <div className="flex items-center gap-2">
+                  <Button variant="secondary" disabled={page <= 1} onClick={() => setPage(page - 1)}>ก่อนหน้า</Button>
+                  <span className="text-sm text-slate-600">หน้า {page} / {totalPages}</span>
+                  <Button variant="secondary" disabled={page >= totalPages} onClick={() => setPage(page + 1)}>ถัดไป</Button>
+                </div>
+              </div>
+            ) : audits.length > 0 ? (
+              <div className="border-t border-slate-200 px-4 py-3">
+                <p className="text-sm text-slate-500">ทั้งหมด {audits.length} รายการ</p>
+              </div>
+            ) : null}
+          </>
         )}
       </Card>
     </div>
