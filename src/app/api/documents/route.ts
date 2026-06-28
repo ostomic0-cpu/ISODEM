@@ -6,6 +6,7 @@ import { type NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireApiAuth } from "@/lib/auth";
 import { logActivity } from "@/lib/activity";
+import { validateUpload } from "@/lib/upload-validation";
 
 const uploadDir = path.join(process.cwd(), "public", "uploads", "documents");
 const ownerSelect = { id: true, email: true, name: true, department: true, roleId: true, isActive: true, createdAt: true, updatedAt: true };
@@ -83,13 +84,20 @@ export async function POST(request: NextRequest) {
   if ("error" in auth) return auth.error;
   const form = await request.formData();
   const file = form.get("file");
-  if (!(file instanceof File)) return Response.json({ error: "กรุณาแนบไฟล์" }, { status: 400 });
+  const validation = validateUpload(file);
+  if (!validation.valid) return Response.json({ error: validation.error }, { status: validation.status });
 
-  await mkdir(uploadDir, { recursive: true });
-  const ext = path.extname(file.name);
-  const storedFilename = `${randomUUID()}${ext}`;
-  const filePath = `/uploads/documents/${storedFilename}`;
-  await writeFile(path.join(uploadDir, storedFilename), Buffer.from(await file.arrayBuffer()));
+  let storedFilename: string;
+  let filePath: string;
+  try {
+    await mkdir(uploadDir, { recursive: true });
+    const ext = path.extname(validation.file.name);
+    storedFilename = `${randomUUID()}${ext}`;
+    filePath = `/uploads/documents/${storedFilename}`;
+    await writeFile(path.join(uploadDir, storedFilename), Buffer.from(await validation.file.arrayBuffer()));
+  } catch {
+    return Response.json({ error: "ไม่สามารถบันทึกไฟล์ได้ กรุณาลองอีกครั้ง" }, { status: 500 });
+  }
 
   const category = String(form.get("category") || "SOP");
   const requestedDocNumber = String(form.get("docNumber") ?? "").trim();
@@ -105,7 +113,7 @@ export async function POST(request: NextRequest) {
       versions: {
         create: {
           versionNumber: String(form.get("versionNumber") || "1.0"),
-          originalFilename: file.name,
+          originalFilename: validation.file.name,
           storedFilename,
           filePath,
           changeSummary: String(form.get("changeSummary") || "สร้างเอกสารใหม่"),
