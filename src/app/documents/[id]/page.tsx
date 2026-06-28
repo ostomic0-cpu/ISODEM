@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { formatDate, thaiStatus } from "@/lib/utils";
+import { FilePreviewModal } from "@/components/shared/file-preview-modal";
 
 type UserSummary = {
   id: string;
@@ -102,6 +103,18 @@ export default function DocumentDetailPage({ params }: { params: Promise<{ id: s
   const [reloadKey, setReloadKey] = useState(0);
   const [rejectOpen, setRejectOpen] = useState(false);
   const [rejectReason, setRejectReason] = useState("");
+  const [previewFile, setPreviewFile] = useState<{
+    url: string;
+    name: string;
+    type: "pdf" | "image" | "unsupported";
+  } | null>(null);
+
+  function getFileType(filename: string): "pdf" | "image" | "unsupported" {
+    const ext = filename.split(".").pop()?.toLowerCase() || "";
+    if (ext === "pdf") return "pdf";
+    if (["png", "jpg", "jpeg", "gif", "webp", "bmp", "svg"].includes(ext)) return "image";
+    return "unsupported";
+  }
 
   useEffect(() => {
     let active = true;
@@ -366,17 +379,41 @@ export default function DocumentDetailPage({ params }: { params: Promise<{ id: s
           {document.versions.map((version) => (
             <div key={version.id} className="rounded-md border border-slate-200 p-3">
               <div className="flex items-center justify-between gap-3">
-                <a className="font-medium text-teal-700" href={version.filePath} target="_blank">
+                <a className="font-medium text-teal-700" href={version.filePath} target="_blank" rel="noopener noreferrer">
                   เวอร์ชัน {version.versionNumber}
                 </a>
-                <StatusBadge status={version.status} />
+                <div className="flex items-center gap-2">
+                  <StatusBadge status={version.status} />
+                  {version.filePath ? (
+                    <button
+                      onClick={() =>
+                        setPreviewFile({
+                          url: version.filePath,
+                          name: version.originalFilename || "ไฟล์",
+                          type: getFileType(version.originalFilename || version.filePath),
+                        })
+                      }
+                      className="whitespace-nowrap rounded-md px-2 py-1 text-xs font-medium text-teal-700 hover:bg-teal-50"
+                    >
+                      👁️ ดูตัวอย่าง
+                    </button>
+                  ) : null}
+                </div>
               </div>
               <p className="mt-1 text-sm text-slate-600">{version.changeSummary}</p>
-              <p className="mt-1 max-w-[200px] truncate text-xs text-slate-500">{version.originalFilename} · {formatDate(version.createdAt)}</p>
+              {version.originalFilename ? (
+                <p className="mt-1 max-w-[200px] truncate text-xs text-slate-500">{version.originalFilename} · {formatDate(version.createdAt)}</p>
+              ) : (
+                <p className="mt-1 text-xs text-slate-500">{formatDate(version.createdAt)}</p>
+              )}
             </div>
           ))}
         </div>
       </Card>
+
+      {previewFile ? (
+        <FilePreviewModal file={previewFile} onClose={() => setPreviewFile(null)} />
+      ) : null}
 
       {rejectOpen ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-4 sm:mx-4">
