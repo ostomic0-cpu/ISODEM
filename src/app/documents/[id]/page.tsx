@@ -8,6 +8,8 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { formatDate, thaiStatus } from "@/lib/utils";
 import { FilePreviewModal } from "@/components/shared/file-preview-modal";
+import { WorkflowStepper } from "@/components/workflow/workflow-stepper";
+import { NextActionBox } from "@/components/workflow/next-action-box";
 
 type UserSummary = {
   id: string;
@@ -296,6 +298,18 @@ export default function DocumentDetailPage({ params }: { params: Promise<{ id: s
 
       {success ? <p className="rounded-md bg-emerald-50 p-3 text-sm text-emerald-700">{success}</p> : null}
       {messageError ? <p className="rounded-md bg-rose-50 p-3 text-sm text-rose-700">{messageError}</p> : null}
+
+      {/* Workflow Stepper — visual lifecycle pipeline */}
+      <WorkflowStepper status={document.status} />
+
+      {/* Next Action — contextual guidance */}
+      {currentUser ? (
+        <NextActionBox
+          status={document.status}
+          userRole={currentUser.role}
+          isOwner={currentUser.id === document.ownerId}
+        />
+      ) : null}
 
       <Card>
         <div className="flex flex-wrap items-center justify-between gap-3">
