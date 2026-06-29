@@ -17,7 +17,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   const auth = await requireApiAuth(request, "audits", "read");
   if ("error" in auth) return auth.error;
   const { id } = await params;
-  const audit = await prisma.audit.findUnique({ where: { id }, include: { auditor: { select: { id: true, email: true, name: true, department: true, roleId: true, isActive: true, createdAt: true, updatedAt: true } }, findings: { include: { capa: true } } } });
+  const audit = await prisma.audit.findUnique({ where: { id }, include: { auditor: { select: { id: true, email: true, name: true, department: true, roleId: true, isActive: true, createdAt: true, updatedAt: true } }, findings: { include: { capa: true } }, department: { select: { id: true, name: true } } } });
   if (!audit) return Response.json({ error: "ไม่พบการตรวจประเมิน" }, { status: 404 });
   return Response.json({
     ...audit,
@@ -30,14 +30,27 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
   if ("error" in auth) return auth.error;
   const { id } = await params;
   const body = await request.json();
+
+  // Build update data
+  const data: Record<string, unknown> = {};
+  if (body.title !== undefined) data.title = body.title;
+  if (body.scheduleDate !== undefined) data.scheduleDate = new Date(body.scheduleDate);
+  if (body.status !== undefined) data.status = body.status;
+  if (body.checklistData !== undefined) data.checklistData = body.checklistData;
+
+  if (body.departmentId !== undefined) {
+    if (body.departmentId) {
+      const dept = await prisma.department.findUnique({ where: { id: body.departmentId }, select: { id: true } });
+      if (!dept) {
+        return Response.json({ error: "ไม่พบแผนกที่ระบุ" }, { status: 400 });
+      }
+    }
+    data.departmentId = body.departmentId || null;
+  }
+
   const audit = await prisma.audit.update({
     where: { id },
-    data: {
-      title: body.title,
-      scheduleDate: body.scheduleDate ? new Date(body.scheduleDate) : undefined,
-      status: body.status,
-      checklistData: body.checklistData,
-    },
+    data,
   });
   if (body.status) {
     logActivity(auth.session.id, "audit.status_changed", {
@@ -58,6 +71,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     data: {
       auditId: id,
       type: body.type || "NC",
+      severity: body.severity || "OBS",
       description: body.description,
       status: body.status || "Open",
     },

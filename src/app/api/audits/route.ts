@@ -13,7 +13,7 @@ export async function GET(request: NextRequest) {
   if ("error" in auth) return auth.error;
   const audits = await prisma.audit.findMany({
     orderBy: { scheduleDate: "desc" },
-    include: { auditor: { select: { id: true, email: true, name: true, department: true, roleId: true, isActive: true, createdAt: true, updatedAt: true } }, findings: { include: { capa: true } } },
+    include: { auditor: { select: { id: true, email: true, name: true, department: true, roleId: true, isActive: true, createdAt: true, updatedAt: true } }, findings: { include: { capa: true } }, department: { select: { id: true, name: true } } },
   });
   return Response.json(
     audits.map((audit) => ({
@@ -27,6 +27,15 @@ export async function POST(request: NextRequest) {
   const auth = await requireApiAuth(request, "audits", "write");
   if ("error" in auth) return auth.error;
   const body = await request.json();
+
+  // Validate departmentId if provided
+  if (body.departmentId) {
+    const dept = await prisma.department.findUnique({ where: { id: body.departmentId }, select: { id: true } });
+    if (!dept) {
+      return Response.json({ error: "ไม่พบแผนกที่ระบุ" }, { status: 400 });
+    }
+  }
+
   const audit = await prisma.audit.create({
     data: {
       title: body.title,
@@ -34,6 +43,7 @@ export async function POST(request: NextRequest) {
       status: body.status || "Scheduled",
       auditorId: body.auditorId || auth.session.id,
       checklistData: body.checklistData || "[]",
+      departmentId: body.departmentId || null,
     },
   });
   logActivity(auth.session.id, "audit.created", { auditId: audit.id, title: audit.title, status: audit.status });

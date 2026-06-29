@@ -164,6 +164,56 @@ async function main() {
       create: { name: section.name, parentId },
     });
   }
+
+  // Demo data: Audit with new fields
+  const adminUser = await prisma.user.findUnique({ where: { email: "admin@qms.local" }, select: { id: true } });
+  const qaUser = await prisma.user.findUnique({ where: { email: "qa@qms.local" }, select: { id: true } });
+  const qualityDept = await prisma.department.findUnique({ where: { name: "คุณภาพ" }, select: { id: true } });
+  const engineerDept = await prisma.department.findUnique({ where: { name: "วิศวกรรม" }, select: { id: true } });
+
+  const demoAudit = await prisma.audit.upsert({
+    where: { id: "demo-audit-001" },
+    update: {},
+    create: {
+      id: "demo-audit-001",
+      title: "ตรวจประเมินระบบคุณภาพ ประจำปี 2569",
+      scheduleDate: new Date("2026-07-15"),
+      status: "Scheduled",
+      auditorId: adminUser!.id,
+      departmentId: qualityDept!.id,
+      checklistData: "[]",
+    },
+  });
+
+  const demoFinding = await prisma.auditFinding.upsert({
+    where: { id: "demo-finding-001" },
+    update: {},
+    create: {
+      id: "demo-finding-001",
+      auditId: demoAudit.id,
+      type: "NC",
+      severity: "MAJOR",
+      description: "ไม่พบเอกสารควบคุมกระบวนการผลิต",
+      status: "Open",
+    },
+  });
+
+  await prisma.cAPA.upsert({
+    where: { id: "demo-capa-001" },
+    update: {},
+    create: {
+      id: "demo-capa-001",
+      findingId: demoFinding.id,
+      rcaNotes: "ยังไม่มีระบบจัดเก็บเอกสารควบคุม",
+      actionPlan: "จัดทำระบบจัดเก็บเอกสารควบคุมกระบวนการผลิต",
+      status: "Open",
+      assigneeId: qaUser!.id,
+      departmentId: engineerDept!.id,
+      priority: "HIGH",
+      targetDate: new Date("2026-08-15"),
+      dueDate: new Date("2026-08-15"),
+    },
+  });
 }
 
 main()
