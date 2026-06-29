@@ -3,7 +3,7 @@ import bcrypt from "bcryptjs";
 
 const prisma = new PrismaClient();
 
-const modules = ["dashboard", "folders", "documents", "audits", "capas"];
+const modules = ["dashboard", "folders", "documents", "audits", "capas", "departments"];
 
 async function main() {
   const roles = await Promise.all([
@@ -33,6 +33,7 @@ async function main() {
       documents: ["read", "write", "approve"],
       audits: ["read", "write", "approve"],
       capas: ["read", "write", "approve"],
+      departments: ["read"],
     },
     Engineer: {
       dashboard: ["read"],
@@ -40,6 +41,7 @@ async function main() {
       documents: ["read", "write-own"],
       audits: ["read"],
       capas: ["read"],
+      departments: ["read"],
     },
   };
 
@@ -125,6 +127,43 @@ async function main() {
     update: { name: "เอกสารหลัก" },
     create: { id: "root-folder", name: "เอกสารหลัก" },
   });
+
+  // Phase 1: Root departments (divisions)
+  const rootDepts: { name: string }[] = [
+    { name: "คุณภาพ" },
+    { name: "วิศวกรรม" },
+    { name: "ผลิต" },
+  ];
+  const createdRoots: Record<string, string> = {};
+  for (const dept of rootDepts) {
+    const created = await prisma.department.upsert({
+      where: { name: dept.name },
+      update: {},
+      create: { name: dept.name },
+    });
+    createdRoots[dept.name] = created.id;
+  }
+
+  // Phase 2: Sections (child departments)
+  const sectionData: { name: string; parentName: string }[] = [
+    { name: "ควบคุมคุณภาพ", parentName: "คุณภาพ" },
+    { name: "assurance คุณภาพ", parentName: "คุณภาพ" },
+    { name: "ซ่อมบำรุง", parentName: "วิศวกรรม" },
+    { name: "ออกแบบ", parentName: "วิศวกรรม" },
+    { name: "ประกอบ", parentName: "ผลิต" },
+  ];
+  for (const section of sectionData) {
+    const parentId = createdRoots[section.parentName];
+    if (!parentId) {
+      console.warn(`Parent department "${section.parentName}" not found, skipping "${section.name}"`);
+      continue;
+    }
+    await prisma.department.upsert({
+      where: { name: section.name },
+      update: {},
+      create: { name: section.name, parentId },
+    });
+  }
 }
 
 main()

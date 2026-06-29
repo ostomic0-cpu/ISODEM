@@ -60,6 +60,16 @@ model Folder {
   updatedAt DateTime   @updatedAt
 }
 
+model Department {
+  id        String       @id @default(cuid())
+  name      String       @unique
+  parentId  String?
+  parent    Department?  @relation("DepartmentTree", fields: [parentId], references: [id])
+  children  Department[] @relation("DepartmentTree")
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+}
+
 model Document {
   id          String            @id @default(cuid())
   docNumber   String            @unique
