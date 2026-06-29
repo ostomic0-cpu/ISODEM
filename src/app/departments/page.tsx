@@ -36,11 +36,20 @@ export default function DepartmentsPage() {
   const [success, setSuccess] = useState("");
   const [reloadKey, setReloadKey] = useState(0);
   const [saving, setSaving] = useState(false);
+  const [userRole, setUserRole] = useState<string | null>(null);
+  const [roleChecked, setRoleChecked] = useState(false);
 
   const [modalOpen, setModalOpen] = useState(false);
   const [editDept, setEditDept] = useState<Department | null>(null);
   const [formName, setFormName] = useState("");
   const [formParentId, setFormParentId] = useState("");
+
+  useEffect(() => {
+    fetch("/api/auth/me")
+      .then((r) => r.ok ? r.json() : Promise.resolve(null))
+      .then((s) => setUserRole(s?.role ?? null))
+      .finally(() => setRoleChecked(true));
+  }, []);
 
   useEffect(() => {
     async function load() {
@@ -125,7 +134,7 @@ export default function DepartmentsPage() {
     setSuccess(`ลบแผนก "${dept.name}" สำเร็จ`);
   }
 
-  function renderDeptRows(nodes: Department[], depth = 0): React.ReactNode[] {
+  function renderDeptRows(nodes: Department[], depth = 0, showActions = false): React.ReactNode[] {
     const rows: React.ReactNode[] = [];
     for (const node of nodes) {
       const childCount = node._count?.children ?? node.children?.length ?? 0;
@@ -137,6 +146,7 @@ export default function DepartmentsPage() {
             </span>
           </Td>
           <Td className="text-slate-500">{node._count?.children ?? 0}</Td>
+          {showActions ? (
           <Td>
             <div className="flex gap-2">
               <Button variant="secondary" onClick={() => openEdit(node)}>แก้ไข</Button>
@@ -147,14 +157,45 @@ export default function DepartmentsPage() {
               )}
             </div>
           </Td>
+          ) : null}
         </tr>
       );
-      if (node.children) rows.push(...renderDeptRows(node.children, depth + 1));
+      if (node.children) rows.push(...renderDeptRows(node.children, depth + 1, showActions));
     }
     return rows;
   }
 
   const tree = buildTree(departments);
+  const isAdmin = userRole === "Admin";
+
+  if (!roleChecked) return <p className="text-slate-500">กำลังตรวจสอบสิทธิ์...</p>;
+
+  if (roleChecked && !isAdmin) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-2xl font-semibold">จัดการแผนก</h1>
+          <p className="text-sm text-slate-500">สร้าง แก้ไข และลบแผนกขององค์กร</p>
+        </div>
+        <p className="rounded-md bg-amber-50 p-3 text-sm text-amber-700">คุณไม่มีสิทธิ์เข้าถึงหน้านี้ (เฉพาะ Admin)</p>
+        <Card className="overflow-x-auto">
+          {loading ? <p className="text-slate-500">กำลังโหลดแผนก...</p> : departments.length === 0 ? (
+            <p className="text-slate-500">ยังไม่มีแผนก</p>
+          ) : (
+            <Table>
+              <thead>
+                <tr>
+                  <Th>ชื่อแผนก</Th>
+                  <Th>แผนกย่อย</Th>
+                </tr>
+              </thead>
+              <tbody>{renderDeptRows(tree, 0, false)}</tbody>
+            </Table>
+          )}
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -179,7 +220,7 @@ export default function DepartmentsPage() {
                 <Th>จัดการ</Th>
               </tr>
             </thead>
-            <tbody>{renderDeptRows(tree)}</tbody>
+            <tbody>{renderDeptRows(tree, 0, true)}</tbody>
           </Table>
         )}
       </Card>
@@ -207,6 +248,7 @@ export default function DepartmentsPage() {
                 >
                   <option value="">ไม่มี (แผนกหลัก)</option>
                   {departments
+                    .filter((d) => !d.parentId)
                     .filter((d) => editDept ? d.id !== editDept.id : true)
                     .map((d) => (
                       <option key={d.id} value={d.id}>{d.name}</option>

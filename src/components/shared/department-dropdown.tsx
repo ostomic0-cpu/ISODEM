@@ -92,6 +92,7 @@ export function DepartmentDropdown({
         defaultValue=""
         className={baseClass}
         disabled
+        key="loading"
       >
         <option value="">กำลังโหลด...</option>
       </select>
@@ -119,6 +120,7 @@ export function DepartmentDropdown({
 
   return (
     <select
+      key={"dept-" + (defaultValue ?? "")}
       name={name}
       required={required}
       defaultValue={defaultValue ?? ""}
