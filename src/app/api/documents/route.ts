@@ -65,6 +65,7 @@ export async function GET(request: NextRequest) {
         owner: { select: ownerSelect },
         folder: true,
         versions: { orderBy: { createdAt: "desc" }, take: 1 },
+        departmentRel: { select: { id: true, name: true } },
       },
     }),
     prisma.document.count({ where }),
@@ -102,12 +103,24 @@ export async function POST(request: NextRequest) {
   const category = String(form.get("category") || "SOP");
   const requestedDocNumber = String(form.get("docNumber") ?? "").trim();
   const canOverrideDocNumber = requestedDocNumber && (auth.session.role === "Admin" || auth.session.role === "QA");
+
+  // Validate departmentId if provided
+  const rawDeptId = form.get("departmentId");
+  const formDeptId = rawDeptId ? String(rawDeptId) : "";
+  if (formDeptId) {
+    const dept = await prisma.department.findUnique({ where: { id: formDeptId }, select: { id: true } });
+    if (!dept) {
+      return Response.json({ error: "ไม่พบแผนกที่ระบุ" }, { status: 400 });
+    }
+  }
+
   const documentData = (docNumber: string) => ({
     docNumber,
       title: String(form.get("title") ?? ""),
       category,
       status: "Draft",
       department: String(form.get("department") ?? auth.session.department),
+      departmentId: formDeptId || null,
       ownerId: auth.session.id,
       folderId: String(form.get("folderId") ?? "root-folder"),
       versions: {

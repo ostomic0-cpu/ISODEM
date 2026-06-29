@@ -26,6 +26,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
           approvedBy: { select: userSelect },
         },
       },
+      departmentRel: { select: { id: true, name: true } },
     },
   });
   if (!document) return Response.json({ error: "ไม่พบเอกสาร" }, { status: 404 });
@@ -46,15 +47,27 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     return Response.json({ error: "เอกสารที่อนุมัติหรือเก็บถาวรแล้วไม่สามารถแก้ไขได้" }, { status: 400 });
   }
 
+  // Build update data
+  const data: Record<string, unknown> = {};
+  if (body.title !== undefined) data.title = body.title;
+  if (body.category !== undefined) data.category = body.category;
+  if (body.status !== undefined) data.status = body.status;
+  if (body.department !== undefined) data.department = body.department;
+  if (body.folderId !== undefined) data.folderId = body.folderId;
+
+  if (body.departmentId !== undefined) {
+    if (body.departmentId) {
+      const dept = await prisma.department.findUnique({ where: { id: body.departmentId }, select: { id: true } });
+      if (!dept) {
+        return Response.json({ error: "ไม่พบแผนกที่ระบุ" }, { status: 400 });
+      }
+    }
+    data.departmentId = body.departmentId || null;
+  }
+
   const document = await prisma.document.update({
     where: { id },
-    data: {
-      title: body.title,
-      category: body.category,
-      status: body.status,
-      department: body.department,
-      folderId: body.folderId,
-    },
+    data,
   });
   return Response.json(document);
 }
