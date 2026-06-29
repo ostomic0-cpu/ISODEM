@@ -19,6 +19,7 @@ export function Sidebar({ role }: { role: string }) {
   const adminItems = [
     ...navItems,
     { href: "/activity", label: "กิจกรรม" },
+    { href: "/departments", label: "จัดการแผนก" },
     { href: "/users", label: "จัดการผู้ใช้" },
   ];
   const qaItems = [

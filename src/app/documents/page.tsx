@@ -10,7 +10,10 @@ import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Table, Td, Th } from "@/components/ui/table";
 
+import { DepartmentDropdown } from "@/components/shared/department-dropdown";
+
 type Folder = { id: string; name: string };
+type DepartmentRef = { id: string; name: string };
 type DocumentRow = {
   id: string;
   docNumber: string;
@@ -18,6 +21,8 @@ type DocumentRow = {
   category: string;
   status: string;
   department: string;
+  departmentId?: string | null;
+  departmentRel?: DepartmentRef | null;
   folder: Folder;
 };
 type CurrentUser = { role: string };
@@ -47,6 +52,7 @@ const sortOptions = [
 export default function DocumentsPage() {
   const [documents, setDocuments] = useState<DocumentRow[]>([]);
   const [folders, setFolders] = useState<Folder[]>([]);
+  const [departments, setDepts] = useState<DepartmentRef[]>([]);
   const [userRole, setUserRole] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -75,9 +81,10 @@ export default function DocumentsPage() {
     sp.set("page", String(params.page));
     sp.set("pageSize", String(params.pageSize));
 
-    const [docRes, folderRes] = await Promise.all([
+    const [docRes, folderRes, deptRes] = await Promise.all([
       fetch(`/api/documents?${sp.toString()}`),
       fetch("/api/folders"),
+      fetch("/api/departments"),
     ]);
     if (!docRes.ok) { setError("โหลดเอกสารไม่สำเร็จ"); setLoading(false); return; }
     const body = await docRes.json();
@@ -85,6 +92,7 @@ export default function DocumentsPage() {
     setTotal(body.total ?? 0);
     setTotalPages(body.totalPages ?? 0);
     if (folderRes.ok) setFolders(await folderRes.json());
+    if (deptRes.ok) setDepts(await deptRes.json());
     setLoading(false);
   }
 
@@ -115,9 +123,10 @@ export default function DocumentsPage() {
       sp.set("sortOrder", filters.sortOrder);
       sp.set("page", String(filters.page));
       sp.set("pageSize", String(filters.pageSize));
-      const [docRes, folderRes] = await Promise.all([
+      const [docRes, folderRes, deptRes] = await Promise.all([
         fetch(`/api/documents?${sp.toString()}`),
         fetch("/api/folders"),
+        fetch("/api/departments"),
       ]);
       if (!docRes.ok) { setError("โหลดเอกสารไม่สำเร็จ"); setLoading(false); return; }
       const body = await docRes.json();
@@ -125,6 +134,7 @@ export default function DocumentsPage() {
       setTotal(body.total ?? 0);
       setTotalPages(body.totalPages ?? 0);
       if (folderRes.ok) setFolders(await folderRes.json());
+      if (deptRes.ok) setDepts(await deptRes.json());
       setLoading(false);
     }
     initialLoad();
@@ -180,7 +190,8 @@ export default function DocumentsPage() {
             <option value="Policy">Policy</option>
             <option value="Form">Form</option>
           </Select>
-          <Input name="department" placeholder="แผนก" required />
+          <DepartmentDropdown name="departmentId" />
+          <Input name="department" placeholder="แผนก (ข้อความสำรอง)" className="text-sm text-slate-500" />
           <Select name="folderId" defaultValue={folders[0]?.id ?? "root-folder"}>
             {folders.map((folder) => (
               <option key={folder.id} value={folder.id}>
@@ -235,7 +246,13 @@ export default function DocumentsPage() {
               </div>
               <div>
                 <label className="mb-1 block text-xs font-medium text-slate-500">แผนก</label>
-                <Input placeholder="แผนก..." value={filters.department} onChange={(e) => updateFilters({ department: e.target.value })} className="w-32" />
+                <div className="w-40">
+                  <DepartmentDropdown
+                    value={filters.department}
+                    onChange={(v) => updateFilters({ department: v })}
+                    departments={departments}
+                  />
+                </div>
               </div>
               <div>
                 <label className="mb-1 block text-xs font-medium text-slate-500">โฟลเดอร์</label>
@@ -281,7 +298,7 @@ export default function DocumentsPage() {
                     <Td><Link className="font-medium text-teal-700" href={`/documents/${document.id}`}>{document.title}</Link></Td>
                     <Td>{document.category}</Td>
                     <Td><StatusBadge status={document.status} /></Td>
-                    <Td>{document.department}</Td>
+                    <Td>{document.departmentRel?.name || document.department || "ไม่ระบุแผนก"}</Td>
                   </tr>
                 ))}
               </tbody>

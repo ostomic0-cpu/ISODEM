@@ -6,9 +6,11 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
+import { DepartmentDropdown } from "@/components/shared/department-dropdown";
 import { formatDate } from "@/lib/utils";
 
-type Capa = { id: string; rcaNotes: string; actionPlan: string; verificationNotes?: string | null; status: string; targetDate: string; isOverdue?: boolean; finding: { description: string } };
+type DepartmentRef = { id: string; name: string };
+type Capa = { id: string; rcaNotes: string; actionPlan: string; verificationNotes?: string | null; status: string; targetDate: string; isOverdue?: boolean; finding: { description: string }; department?: DepartmentRef | null };
 
 export default function CapaDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -51,6 +53,9 @@ export default function CapaDetailPage({ params }: { params: Promise<{ id: strin
       <div>
         <h1 className="text-2xl font-semibold">รายละเอียด CAPA</h1>
         <p className="text-sm text-slate-500">{capa.finding.description}</p>
+        {capa.department?.name ? (
+          <p className="mt-1 text-xs text-slate-500">แผนก: {capa.department.name}</p>
+        ) : null}
       </div>
       <Card>
         <div className="mb-4 flex items-center justify-between">
@@ -73,6 +78,7 @@ export default function CapaDetailPage({ params }: { params: Promise<{ id: strin
             <option value="VerificationPending">รอตรวจยืนยัน</option>
             <option value="Closed">ปิดแล้ว</option>
           </Select>
+          <DepartmentDropdown name="departmentId" defaultValue={capa.department?.id ?? ""} placeholder="ไม่ระบุแผนก" />
           <Button className="md:col-span-2" disabled={saving}>{saving ? "กำลังบันทึก..." : "บันทึกการเปลี่ยนแปลง"}</Button>
         </form>
       </Card>

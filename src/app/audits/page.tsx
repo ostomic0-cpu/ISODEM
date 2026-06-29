@@ -8,9 +8,11 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Table, Td, Th } from "@/components/ui/table";
+import { DepartmentDropdown } from "@/components/shared/department-dropdown";
 import { formatDate } from "@/lib/utils";
 
-type Audit = { id: string; title: string; scheduleDate: string; status: string; isOverdue?: boolean; findings: unknown[] };
+type DepartmentRef = { id: string; name: string };
+type Audit = { id: string; title: string; scheduleDate: string; status: string; isOverdue?: boolean; findings: unknown[]; department?: DepartmentRef | null };
 
 export default function AuditsPage() {
   const [audits, setAudits] = useState<Audit[]>([]);
@@ -27,9 +29,9 @@ export default function AuditsPage() {
   useEffect(() => {
     async function loadAudits() {
       setLoading(true);
-      const response = await fetch("/api/audits");
-      if (!response.ok) setError("โหลดรายการตรวจประเมินไม่สำเร็จ");
-      else setAudits(await response.json());
+      const [auditRes] = await Promise.all([fetch("/api/audits")]);
+      if (!auditRes.ok) setError("โหลดรายการตรวจประเมินไม่สำเร็จ");
+      else setAudits(await auditRes.json());
       setLoading(false);
     }
 
@@ -76,6 +78,7 @@ export default function AuditsPage() {
             <option value="Completed">เสร็จสิ้น</option>
             <option value="Cancelled">ยกเลิก</option>
           </Select>
+          <DepartmentDropdown name="departmentId" placeholder="ไม่ระบุแผนก" />
           <input type="hidden" name="checklistData" value="[]" />
           <Button disabled={saving} className="md:col-span-3">{saving ? "กำลังบันทึก..." : "สร้างแผนตรวจ"}</Button>
         </form>
@@ -86,7 +89,7 @@ export default function AuditsPage() {
         {loading ? <p className="text-slate-500">กำลังโหลดรายการตรวจประเมิน...</p> : (
           <>
             <Table>
-              <thead><tr><Th>หัวข้อ</Th><Th>วันที่</Th><Th>สถานะ</Th><Th>ข้อค้นพบ</Th></tr></thead>
+              <thead><tr><Th>หัวข้อ</Th><Th>วันที่</Th><Th>สถานะ</Th><Th>ข้อค้นพบ</Th><Th>แผนก</Th></tr></thead>
               <tbody>
                 {paginatedAudits.map((audit) => (
                   <tr key={audit.id}>
@@ -101,6 +104,7 @@ export default function AuditsPage() {
                       )}
                     </Td>
                     <Td>{audit.findings.length}</Td>
+                    <Td>{audit.department?.name || "ไม่ระบุแผนก"}</Td>
                   </tr>
                 ))}
               </tbody>

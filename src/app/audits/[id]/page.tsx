@@ -8,8 +8,9 @@ import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { formatDate } from "@/lib/utils";
 
+type DepartmentRef = { id: string; name: string };
 type Finding = { id: string; type: string; description: string; status: string; capa?: { id: string } | null };
-type AuditDetail = { id: string; title: string; scheduleDate: string; status: string; isOverdue?: boolean; findings: Finding[] };
+type AuditDetail = { id: string; title: string; scheduleDate: string; status: string; isOverdue?: boolean; findings: Finding[]; department?: DepartmentRef | null };
 
 const statusBanners: Record<string, { label: string; className: string }> = {
   Scheduled: { label: "วางแผนแล้ว", className: "border-blue-200 bg-blue-50 text-blue-900" },
@@ -78,6 +79,9 @@ export default function AuditDetailPage({ params }: { params: Promise<{ id: stri
               )}
             </div>
             <p className="mt-2 text-sm opacity-70">{formatDate(audit.scheduleDate)}</p>
+            {audit.department?.name ? (
+              <p className="mt-1 text-sm opacity-70">แผนก: {audit.department.name}</p>
+            ) : null}
           </div>
         </div>
       </div>

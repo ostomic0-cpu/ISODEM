@@ -8,11 +8,13 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Table, Td, Th } from "@/components/ui/table";
+import { DepartmentDropdown } from "@/components/shared/department-dropdown";
 import { formatDate } from "@/lib/utils";
 
+type DepartmentRef = { id: string; name: string };
 type FindingOption = { id: string; description: string; capa?: unknown };
 type Audit = { findings: FindingOption[] };
-type Capa = { id: string; status: string; targetDate: string; isOverdue?: boolean; finding: { description: string } };
+type Capa = { id: string; status: string; targetDate: string; isOverdue?: boolean; finding: { description: string }; department?: DepartmentRef | null };
 
 export default function CapasPage() {
   const [capas, setCapas] = useState<Capa[]>([]);
@@ -83,6 +85,7 @@ export default function CapasPage() {
           <Input name="targetDate" type="date" required />
           <Input name="rcaNotes" placeholder="บันทึก RCA" required />
           <Input name="actionPlan" placeholder="แผนปฏิบัติการ" required />
+          <DepartmentDropdown name="departmentId" placeholder="ไม่ระบุแผนก" />
           <Button className="md:col-span-2" disabled={saving}>{saving ? "กำลังบันทึก..." : "สร้าง CAPA"}</Button>
         </form>
       </Card>
@@ -92,7 +95,7 @@ export default function CapasPage() {
         {loading ? <p className="text-slate-500">กำลังโหลด CAPA...</p> : (
           <>
             <Table>
-              <thead><tr><Th>ข้อค้นพบ</Th><Th>กำหนดเสร็จ</Th><Th>สถานะ</Th></tr></thead>
+              <thead><tr><Th>ข้อค้นพบ</Th><Th>กำหนดเสร็จ</Th><Th>สถานะ</Th><Th>แผนก</Th></tr></thead>
               <tbody>
                 {paginatedCapas.map((capa) => (
                   <tr key={capa.id}>
@@ -106,6 +109,7 @@ export default function CapasPage() {
                         </span>
                       )}
                     </Td>
+                    <Td>{capa.department?.name || "ไม่ระบุแผนก"}</Td>
                   </tr>
                 ))}
               </tbody>
