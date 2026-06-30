@@ -9,16 +9,17 @@ import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Table, Td, Th } from "@/components/ui/table";
 import { DepartmentDropdown } from "@/components/shared/department-dropdown";
-import { formatDate } from "@/lib/utils";
+import { formatDate, priorityLabels, priorityColors } from "@/lib/utils";
 
 type DepartmentRef = { id: string; name: string };
 type FindingOption = { id: string; description: string; capa?: unknown };
 type Audit = { findings: FindingOption[] };
-type Capa = { id: string; status: string; targetDate: string; isOverdue?: boolean; finding: { description: string }; department?: DepartmentRef | null };
+type Capa = { id: string; status: string; targetDate: string; isOverdue?: boolean; priority: string; dueDate?: string | null; assignee?: { id: string; name: string } | null; finding: { description: string }; department?: DepartmentRef | null };
 
 export default function CapasPage() {
   const [capas, setCapas] = useState<Capa[]>([]);
   const [findings, setFindings] = useState<FindingOption[]>([]);
+  const [users, setUsers] = useState<Array<{ id: string; name: string }>>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -32,13 +33,14 @@ export default function CapasPage() {
   useEffect(() => {
     async function loadCapas() {
       setLoading(true);
-      const [capaResponse, auditResponse] = await Promise.all([fetch("/api/capas"), fetch("/api/audits")]);
+      const [capaResponse, auditResponse, usersResponse] = await Promise.all([fetch("/api/capas"), fetch("/api/audits"), fetch("/api/users")]);
       if (!capaResponse.ok) setError("โหลด CAPA ไม่สำเร็จ");
       else setCapas(await capaResponse.json());
       if (auditResponse.ok) {
         const audits: Audit[] = await auditResponse.json();
         setFindings(audits.flatMap((audit) => audit.findings).filter((finding) => !finding.capa));
       }
+      if (usersResponse.ok) setUsers(await usersResponse.json());
       setLoading(false);
     }
 
@@ -83,9 +85,22 @@ export default function CapasPage() {
             ))}
           </Select>
           <Input name="targetDate" type="date" required />
+          <Select name="priority" defaultValue="MEDIUM">
+            <option value="LOW">ต่ำ</option>
+            <option value="MEDIUM">ปานกลาง</option>
+            <option value="HIGH">สูง</option>
+            <option value="CRITICAL">วิกฤต</option>
+          </Select>
+          <Select name="assigneeId">
+            <option value="">ไม่กำหนดผู้รับผิดชอบ</option>
+            {users.map((user) => (
+              <option key={user.id} value={user.id}>{user.name}</option>
+            ))}
+          </Select>
           <Input name="rcaNotes" placeholder="บันทึก RCA" required />
           <Input name="actionPlan" placeholder="แผนปฏิบัติการ" required />
           <DepartmentDropdown name="departmentId" placeholder="ไม่ระบุแผนก" />
+          <Input name="dueDate" type="date" placeholder="วันครบกำหนด" />
           <Button className="md:col-span-2" disabled={saving}>{saving ? "กำลังบันทึก..." : "สร้าง CAPA"}</Button>
         </form>
       </Card>
@@ -95,12 +110,17 @@ export default function CapasPage() {
         {loading ? <p className="text-slate-500">กำลังโหลด CAPA...</p> : (
           <>
             <Table>
-              <thead><tr><Th>ข้อค้นพบ</Th><Th>กำหนดเสร็จ</Th><Th>สถานะ</Th><Th>แผนก</Th></tr></thead>
+              <thead><tr><Th>ข้อค้นพบ</Th><Th>กำหนดเสร็จ</Th><Th>ความสำคัญ</Th><Th>สถานะ</Th><Th>ผู้รับผิดชอบ</Th><Th>แผนก</Th></tr></thead>
               <tbody>
                 {paginatedCapas.map((capa) => (
                   <tr key={capa.id}>
                     <Td className="max-w-[200px] truncate"><Link className="font-medium text-teal-700" href={`/capas/${capa.id}`}>{capa.finding.description}</Link></Td>
                     <Td>{formatDate(capa.targetDate)}</Td>
+                    <Td>
+                      <span className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold ${priorityColors[capa.priority] ?? priorityColors.MEDIUM}`}>
+                        {priorityLabels[capa.priority] ?? capa.priority}
+                      </span>
+                    </Td>
                     <Td>
                       <StatusBadge status={capa.status} />
                       {capa.isOverdue && (
@@ -109,6 +129,7 @@ export default function CapasPage() {
                         </span>
                       )}
                     </Td>
+                    <Td>{capa.assignee?.name || "ไม่กำหนด"}</Td>
                     <Td>{capa.department?.name || "ไม่ระบุแผนก"}</Td>
                   </tr>
                 ))}

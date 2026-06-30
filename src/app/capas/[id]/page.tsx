@@ -7,14 +7,15 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { DepartmentDropdown } from "@/components/shared/department-dropdown";
-import { formatDate } from "@/lib/utils";
+import { formatDate, priorityLabels, priorityColors } from "@/lib/utils";
 
 type DepartmentRef = { id: string; name: string };
-type Capa = { id: string; rcaNotes: string; actionPlan: string; verificationNotes?: string | null; status: string; targetDate: string; isOverdue?: boolean; finding: { description: string }; department?: DepartmentRef | null };
+type Capa = { id: string; rcaNotes: string; actionPlan: string; verificationNotes?: string | null; status: string; targetDate: string; isOverdue?: boolean; priority: string; dueDate?: string | null; assignee?: { id: string; name: string } | null; finding: { description: string }; department?: DepartmentRef | null };
 
 export default function CapaDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const [capa, setCapa] = useState<Capa | null>(null);
+  const [users, setUsers] = useState<Array<{ id: string; name: string }>>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -23,9 +24,10 @@ export default function CapaDetailPage({ params }: { params: Promise<{ id: strin
   useEffect(() => {
     async function loadCapa() {
       setLoading(true);
-      const response = await fetch(`/api/capas/${id}`);
+      const [response, usersResponse] = await Promise.all([fetch(`/api/capas/${id}`), fetch("/api/users")]);
       if (!response.ok) setError("โหลดรายละเอียด CAPA ไม่สำเร็จ");
       else setCapa(await response.json());
+      if (usersResponse.ok) setUsers(await usersResponse.json());
       setLoading(false);
     }
 
@@ -58,15 +60,31 @@ export default function CapaDetailPage({ params }: { params: Promise<{ id: strin
         ) : null}
       </div>
       <Card>
-        <div className="mb-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
+        <div className="mb-4 space-y-2">
+          <div className="flex flex-wrap items-center gap-3">
+            <span className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold ${priorityColors[capa.priority] ?? priorityColors.MEDIUM}`}>
+              {priorityLabels[capa.priority] ?? capa.priority}
+            </span>
             <p className="text-sm text-slate-500">กำหนดเสร็จ {formatDate(capa.targetDate)}</p>
+            {capa.dueDate ? (
+              <p className="text-sm text-slate-500">ครบกำหนด {formatDate(capa.dueDate)}</p>
+            ) : null}
             {capa.isOverdue && (
               <span className="inline-flex items-center rounded-full bg-rose-100 px-2.5 py-0.5 text-xs font-medium text-rose-800">
                 เกินกำหนด
               </span>
             )}
             <StatusBadge status={capa.status} />
+          </div>
+          <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-500">
+            {capa.assignee?.name ? (
+              <span>ผู้รับผิดชอบ: {capa.assignee.name}</span>
+            ) : (
+              <span>ผู้รับผิดชอบ: ไม่กำหนด</span>
+            )}
+            {capa.department?.name ? (
+              <span>แผนก: {capa.department.name}</span>
+            ) : null}
           </div>
         </div>
         <form onSubmit={submit} className="grid gap-3 md:grid-cols-2">
@@ -78,7 +96,20 @@ export default function CapaDetailPage({ params }: { params: Promise<{ id: strin
             <option value="VerificationPending">รอตรวจยืนยัน</option>
             <option value="Closed">ปิดแล้ว</option>
           </Select>
+          <Select name="priority" defaultValue={capa.priority}>
+            <option value="LOW">ต่ำ</option>
+            <option value="MEDIUM">ปานกลาง</option>
+            <option value="HIGH">สูง</option>
+            <option value="CRITICAL">วิกฤต</option>
+          </Select>
+          <Select name="assigneeId" defaultValue={capa.assignee?.id ?? ""}>
+            <option value="">ไม่กำหนดผู้รับผิดชอบ</option>
+            {users.map((user) => (
+              <option key={user.id} value={user.id}>{user.name}</option>
+            ))}
+          </Select>
           <DepartmentDropdown name="departmentId" defaultValue={capa.department?.id ?? ""} placeholder="ไม่ระบุแผนก" />
+          <Input name="dueDate" type="date" defaultValue={capa.dueDate ? capa.dueDate.slice(0, 10) : ""} placeholder="วันครบกำหนด" />
           <Button className="md:col-span-2" disabled={saving}>{saving ? "กำลังบันทึก..." : "บันทึกการเปลี่ยนแปลง"}</Button>
         </form>
       </Card>

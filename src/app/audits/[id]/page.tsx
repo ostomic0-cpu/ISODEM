@@ -6,10 +6,10 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
-import { formatDate } from "@/lib/utils";
+import { formatDate, severityLabels, severityColors } from "@/lib/utils";
 
 type DepartmentRef = { id: string; name: string };
-type Finding = { id: string; type: string; description: string; status: string; capa?: { id: string } | null };
+type Finding = { id: string; type: string; severity: string; description: string; status: string; capa?: { id: string } | null };
 type AuditDetail = { id: string; title: string; scheduleDate: string; status: string; isOverdue?: boolean; findings: Finding[]; department?: DepartmentRef | null };
 
 const statusBanners: Record<string, { label: string; className: string }> = {
@@ -86,11 +86,18 @@ export default function AuditDetailPage({ params }: { params: Promise<{ id: stri
         </div>
       </div>
       <Card>
-        <form onSubmit={submit} className="grid gap-3 md:grid-cols-[160px_1fr_auto]">
+        <form onSubmit={submit} className="grid gap-3 md:grid-cols-[120px_140px_1fr_auto]">
           <Select name="type" defaultValue="NC">
             <option value="NC">NC</option>
             <option value="OFI">OFI</option>
             <option value="OBS">OBS</option>
+          </Select>
+          <Select name="severity" defaultValue="OBS">
+            <option value="OBS">ข้อสังเกต</option>
+            <option value="OFI">โอกาสพัฒนา</option>
+            <option value="MINOR">บกพร่องเล็กน้อย</option>
+            <option value="MAJOR">บกพร่องรุนแรง</option>
+            <option value="CAR">ต้องแก้ไข</option>
           </Select>
           <Input name="description" placeholder="รายละเอียดข้อค้นพบ" required />
           <Button disabled={saving}>{saving ? "กำลังบันทึก..." : "เพิ่มข้อค้นพบ"}</Button>
@@ -102,7 +109,12 @@ export default function AuditDetailPage({ params }: { params: Promise<{ id: stri
           {audit.findings.map((finding) => (
             <div key={finding.id} className="rounded-md border border-slate-200 p-3">
               <div className="flex items-center justify-between">
-                <p className="font-medium">{finding.type}</p>
+                <div className="flex items-center gap-2">
+                  <p className="font-medium">{finding.type}</p>
+                  <span className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold ${severityColors[finding.severity] ?? severityColors.OBS}`}>
+                    {severityLabels[finding.severity] ?? finding.severity}
+                  </span>
+                </div>
                 <StatusBadge status={finding.status} />
               </div>
               <p className="mt-1 text-sm text-slate-600">{finding.description}</p>
