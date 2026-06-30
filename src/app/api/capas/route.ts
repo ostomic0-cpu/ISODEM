@@ -11,11 +11,21 @@ function dateIsPast(date: Date): boolean {
 export async function GET(request: NextRequest) {
   const auth = await requireApiAuth(request, "capas", "read");
   if ("error" in auth) return auth.error;
-  const capas = await prisma.cAPA.findMany({ orderBy: { targetDate: "asc" }, include: { assignee: { select: { id: true, email: true, name: true, department: true, roleId: true, isActive: true, createdAt: true, updatedAt: true } }, finding: { include: { audit: true } }, department: { select: { id: true, name: true } } } });
+  const url = new URL(request.url);
+  const departmentId = url.searchParams.get("departmentId");
+  const priority = url.searchParams.get("priority");
+  const where: Record<string, unknown> = {};
+  if (departmentId) where.departmentId = departmentId;
+  if (priority) where.priority = priority;
+  const capas = await prisma.cAPA.findMany({
+    where,
+    orderBy: { targetDate: "asc" },
+    include: { assignee: { select: { id: true, email: true, name: true, department: true, roleId: true, isActive: true, createdAt: true, updatedAt: true } }, finding: { include: { audit: true } }, department: { select: { id: true, name: true } } },
+  });
   return Response.json(
     capas.map((capa) => ({
       ...capa,
-      isOverdue: dateIsPast(capa.targetDate) && !["Closed", "Verified"].includes(capa.status),
+      isOverdue: !["Closed", "Verified"].includes(capa.status) && (dateIsPast(capa.targetDate) || (capa.dueDate && dateIsPast(capa.dueDate))),
     })),
   );
 }

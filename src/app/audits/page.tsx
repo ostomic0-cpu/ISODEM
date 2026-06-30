@@ -22,21 +22,37 @@ export default function AuditsPage() {
   const [success, setSuccess] = useState("");
   const [reloadKey, setReloadKey] = useState(0);
   const [page, setPage] = useState(1);
+  const [deptFilter, setDeptFilter] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [filtersExpanded, setFiltersExpanded] = useState(false);
+  const [departments, setDepartments] = useState<DepartmentRef[]>([]);
   const pageSize = 15;
-  const totalPages = Math.ceil(audits.length / pageSize);
-  const paginatedAudits = audits.slice((page - 1) * pageSize, page * pageSize);
+  const _totalPages = Math.ceil(audits.length / pageSize);
+  const filteredAudits = searchQuery
+    ? audits.filter((a) => a.title.toLowerCase().includes(searchQuery.toLowerCase()))
+    : audits;
+  const paginatedAudits = filteredAudits.slice((page - 1) * pageSize, page * pageSize);
+  const filteredTotalPages = Math.ceil(filteredAudits.length / pageSize);
 
   useEffect(() => {
     async function loadAudits() {
       setLoading(true);
-      const [auditRes] = await Promise.all([fetch("/api/audits")]);
+      setPage(1);
+      const sp = new URLSearchParams();
+      if (deptFilter) sp.set("departmentId", deptFilter);
+      const query = sp.toString();
+      const [auditRes, deptRes] = await Promise.all([
+        fetch(`/api/audits${query ? `?${query}` : ""}`),
+        fetch("/api/departments"),
+      ]);
       if (!auditRes.ok) setError("โหลดรายการตรวจประเมินไม่สำเร็จ");
       else setAudits(await auditRes.json());
+      if (deptRes.ok) setDepartments(await deptRes.json());
       setLoading(false);
     }
 
     loadAudits();
-  }, [reloadKey]);
+  }, [reloadKey, deptFilter]);
 
   useEffect(() => {
     if (!success) return;
@@ -85,8 +101,43 @@ export default function AuditsPage() {
       </Card>
       {success ? <p className="rounded-md bg-emerald-50 p-3 text-sm text-emerald-700">{success}</p> : null}
       {error ? <p className="rounded-md bg-rose-50 p-3 text-sm text-rose-700">{error}</p> : null}
+      <Card className="p-4">
+        <div className="space-y-3">
+          <div className="flex items-end gap-3">
+            <div className="min-w-[200px] flex-1">
+              <label className="mb-1 block text-xs font-medium text-slate-500">ค้นหา</label>
+              <input
+                className="flex h-10 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                placeholder="ค้นหาด้วยหัวข้อตรวจประเมิน..."
+                value={searchQuery}
+                onChange={(e) => { setSearchQuery(e.target.value); setPage(1); }}
+              />
+            </div>
+            <Button variant="secondary" onClick={() => setFiltersExpanded((v) => !v)} className="shrink-0">
+              ตัวกรอง {filtersExpanded ? "▲" : "▼"}
+            </Button>
+            <Button variant="secondary" onClick={() => { setDeptFilter(""); setSearchQuery(""); setPage(1); }} className="shrink-0">ล้าง</Button>
+          </div>
+          {filtersExpanded ? (
+            <div className="flex flex-wrap items-end gap-3">
+              <div>
+                <label className="mb-1 block text-xs font-medium text-slate-500">แผนก</label>
+                <div className="w-40">
+                  <DepartmentDropdown
+                    value={deptFilter}
+                    onChange={(v) => setDeptFilter(v)}
+                    departments={departments}
+                  />
+                </div>
+              </div>
+            </div>
+          ) : null}
+        </div>
+      </Card>
       <Card className="overflow-x-auto">
-        {loading ? <p className="text-slate-500">กำลังโหลดรายการตรวจประเมิน...</p> : (
+        {loading ? <p className="text-slate-500">กำลังโหลดรายการตรวจประเมิน...</p> : filteredAudits.length === 0 ? (
+          <p className="p-6 text-center text-sm text-slate-500">ไม่พบรายการตรวจประเมิน</p>
+        ) : (
           <>
             <Table>
               <thead><tr><Th>หัวข้อ</Th><Th>วันที่</Th><Th>สถานะ</Th><Th>ข้อค้นพบ</Th><Th>แผนก</Th></tr></thead>
@@ -109,18 +160,18 @@ export default function AuditsPage() {
                 ))}
               </tbody>
             </Table>
-            {totalPages > 1 ? (
+            {filteredTotalPages > 1 ? (
               <div className="flex items-center justify-between border-t border-slate-200 px-4 py-3">
-                <p className="text-sm text-slate-500">ทั้งหมด {audits.length} รายการ</p>
+                <p className="text-sm text-slate-500">ทั้งหมด {filteredAudits.length} รายการ</p>
                 <div className="flex items-center gap-2">
                   <Button variant="secondary" disabled={page <= 1} onClick={() => setPage(page - 1)}>ก่อนหน้า</Button>
-                  <span className="text-sm text-slate-600">หน้า {page} / {totalPages}</span>
-                  <Button variant="secondary" disabled={page >= totalPages} onClick={() => setPage(page + 1)}>ถัดไป</Button>
+                  <span className="text-sm text-slate-600">หน้า {page} / {filteredTotalPages}</span>
+                  <Button variant="secondary" disabled={page >= filteredTotalPages} onClick={() => setPage(page + 1)}>ถัดไป</Button>
                 </div>
               </div>
-            ) : audits.length > 0 ? (
+            ) : filteredAudits.length > 0 ? (
               <div className="border-t border-slate-200 px-4 py-3">
-                <p className="text-sm text-slate-500">ทั้งหมด {audits.length} รายการ</p>
+                <p className="text-sm text-slate-500">ทั้งหมด {filteredAudits.length} รายการ</p>
               </div>
             ) : null}
           </>

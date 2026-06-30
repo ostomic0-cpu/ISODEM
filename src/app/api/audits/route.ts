@@ -11,7 +11,12 @@ function dateIsPast(date: Date): boolean {
 export async function GET(request: NextRequest) {
   const auth = await requireApiAuth(request, "audits", "read");
   if ("error" in auth) return auth.error;
+  const url = new URL(request.url);
+  const departmentId = url.searchParams.get("departmentId");
+  const where: Record<string, unknown> = {};
+  if (departmentId) where.departmentId = departmentId;
   const audits = await prisma.audit.findMany({
+    where,
     orderBy: { scheduleDate: "desc" },
     include: { auditor: { select: { id: true, email: true, name: true, department: true, roleId: true, isActive: true, createdAt: true, updatedAt: true } }, findings: { include: { capa: true } }, department: { select: { id: true, name: true } } },
   });

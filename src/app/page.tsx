@@ -4,12 +4,15 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { Card } from "@/components/ui/card";
 import { StatusBadge } from "@/components/shared/status-badge";
-import { formatDate } from "@/lib/utils";
+import { formatDate, severityLabels, severityColors, priorityLabels, priorityColors } from "@/lib/utils";
 
+type DashboardFinding = { severity: string };
+type DashboardAudit = { id: string; title: string; status: string; scheduleDate: string; isOverdue?: boolean; findings: DashboardFinding[] };
+type DashboardCapa = { id: string; status: string; targetDate: string; dueDate?: string | null; isOverdue?: boolean; priority: string; finding: { description: string } };
 type DashboardData = {
   documents: Array<{ id: string; title: string; status: string; updatedAt: string }>;
-  audits: Array<{ id: string; title: string; status: string; scheduleDate: string; isOverdue?: boolean }>;
-  capas: Array<{ id: string; status: string; targetDate: string; isOverdue?: boolean; finding: { description: string } }>;
+  audits: DashboardAudit[];
+  capas: DashboardCapa[];
 };
 
 export default function DashboardPage() {
@@ -70,6 +73,22 @@ export default function DashboardPage() {
     { label: "เกินกำหนด", value: overdueCount, urgent: true },
   ];
 
+  const severityCounts: Record<string, number> = {};
+  for (const audit of data.audits) {
+    for (const finding of audit.findings) {
+      const sev = finding.severity || "OBS";
+      severityCounts[sev] = (severityCounts[sev] || 0) + 1;
+    }
+  }
+  const severityOrder = ["OBS", "OFI", "MINOR", "MAJOR", "CAR"];
+
+  const priorityCounts: Record<string, number> = {};
+  for (const capa of data.capas) {
+    const pri = capa.priority || "MEDIUM";
+    priorityCounts[pri] = (priorityCounts[pri] || 0) + 1;
+  }
+  const priorityOrder = ["LOW", "MEDIUM", "HIGH", "CRITICAL"];
+
   return (
     <div className="space-y-6">
       <div>
@@ -83,6 +102,30 @@ export default function DashboardPage() {
             <p className={`mt-2 text-3xl font-semibold ${kpi.urgent ? "text-red-600" : ""}`}>{kpi.value}</p>
           </Card>
         ))}
+      </div>
+      <div className="grid gap-4 sm:grid-cols-2">
+        <Card>
+          <h2 className="mb-3 font-semibold">ข้อค้นพบแยกตามความรุนแรง</h2>
+          <div className="flex flex-wrap gap-2">
+            {severityOrder.map((sev) => (
+              <span key={sev} className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-sm font-medium ${severityColors[sev] || "bg-slate-100 text-slate-700"}`}>
+                {severityLabels[sev] || sev}
+                <span className="ml-0.5 font-bold">{severityCounts[sev] || 0}</span>
+              </span>
+            ))}
+          </div>
+        </Card>
+        <Card>
+          <h2 className="mb-3 font-semibold">CAPA แยกตามความสำคัญ</h2>
+          <div className="flex flex-wrap gap-2">
+            {priorityOrder.map((pri) => (
+              <span key={pri} className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-sm font-medium ${priorityColors[pri] || "bg-slate-100 text-slate-600"}`}>
+                {priorityLabels[pri] || pri}
+                <span className="ml-0.5 font-bold">{priorityCounts[pri] || 0}</span>
+              </span>
+            ))}
+          </div>
+        </Card>
       </div>
       <Card>
         <div className="flex items-center justify-between">
