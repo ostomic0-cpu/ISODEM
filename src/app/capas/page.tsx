@@ -52,7 +52,7 @@ export default function CapasPage() {
       const [capaResponse, auditResponse, usersResponse, deptResponse] = await Promise.all([
         fetch(`/api/capas${query ? `?${query}` : ""}`),
         fetch("/api/audits"),
-        fetch("/api/users"),
+        fetch("/api/users/assignable"),
         fetch("/api/departments"),
       ]);
       if (!capaResponse.ok) setError("โหลด CAPA ไม่สำเร็จ");

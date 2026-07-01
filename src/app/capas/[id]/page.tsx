@@ -24,7 +24,7 @@ export default function CapaDetailPage({ params }: { params: Promise<{ id: strin
   useEffect(() => {
     async function loadCapa() {
       setLoading(true);
-      const [response, usersResponse] = await Promise.all([fetch(`/api/capas/${id}`), fetch("/api/users")]);
+      const [response, usersResponse] = await Promise.all([fetch(`/api/capas/${id}`), fetch("/api/users/assignable")]);
       if (!response.ok) setError("โหลดรายละเอียด CAPA ไม่สำเร็จ");
       else setCapa(await response.json());
       if (usersResponse.ok) setUsers(await usersResponse.json());

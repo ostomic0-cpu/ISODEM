@@ -48,6 +48,9 @@ const actionLabels: Record<string, string> = {
   "capa.created": "สร้าง CAPA",
   "capa.status_changed": "เปลี่ยนสถานะ CAPA",
   "capa.due_date_changed": "เปลี่ยนกำหนดแล้วเสร็จ",
+  "department.created": "สร้างแผนก",
+  "department.updated": "แก้ไขแผนก",
+  "department.deleted": "ลบแผนก",
 };
 
 function parseMetadata(metadata: string): ActivityMetadata | null {

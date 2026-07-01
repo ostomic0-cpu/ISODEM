@@ -13,6 +13,7 @@ type DashboardData = {
   documents: Array<{ id: string; title: string; status: string; updatedAt: string }>;
   audits: DashboardAudit[];
   capas: DashboardCapa[];
+  activities: Array<{ id: string; action: string; userId: string; user: { id: string; email: string; name: string; role: { name: string } }; metadata: string; createdAt: string }>;
 };
 
 export default function DashboardPage() {
@@ -22,12 +23,14 @@ export default function DashboardPage() {
   useEffect(() => {
     async function load() {
       try {
-        const [documents, audits, capas] = await Promise.all([
+        const [documents, audits, capas, activityRes] = await Promise.all([
           fetch("/api/documents").then((response) => response.json()).then((body) => body.documents ?? []),
           fetch("/api/audits").then((response) => response.json()),
           fetch("/api/capas").then((response) => response.json()),
+          fetch("/api/activity?limit=5"),
         ]);
-        setData({ documents, audits, capas });
+        const activities = activityRes.ok ? (await activityRes.json()).activities ?? [] : [];
+        setData({ documents, audits, capas, activities });
       } catch {
         setError("โหลดข้อมูลแดชบอร์ดไม่สำเร็จ");
       }
@@ -180,20 +183,44 @@ export default function DashboardPage() {
       <Card>
         <h2 className="mb-4 font-semibold">กิจกรรมล่าสุด</h2>
         <div className="space-y-3">
-          {data.documents.slice(0, 5).map((document) => (
-            <div key={document.id} className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <div>
-                <p>
-                  <Link href={"/documents/" + document.id} className="font-medium hover:text-teal-700">
-                    {document.title}
-                  </Link>
-                </p>
-                <p className="text-sm text-slate-500">อัปเดต {formatDate(document.updatedAt)}</p>
+          {data.activities.slice(0, 5).map((activity) => {
+            const labels: Record<string, string> = {
+              "login.success": "เข้าสู่ระบบ",
+              "document.created": "สร้างเอกสาร",
+              "document.submitted": "ส่งตรวจสอบ",
+              "document.approved": "อนุมัติเอกสาร",
+              "document.rejected": "ปฏิเสธเอกสาร",
+              "document.obsoleted": "ลบล้างเอกสาร",
+              "revision.created": "เพิ่มเวอร์ชัน",
+              "user.created": "สร้างผู้ใช้",
+              "user.updated": "แก้ไขผู้ใช้",
+              "user.disabled": "ปิดใช้งานผู้ใช้",
+              "audit.created": "สร้างตรวจประเมิน",
+              "audit.status_changed": "เปลี่ยนสถานะตรวจประเมิน",
+              "capa.created": "สร้าง CAPA",
+              "capa.status_changed": "เปลี่ยนสถานะ CAPA",
+              "capa.due_date_changed": "เปลี่ยนกำหนดแล้วเสร็จ",
+              "department.created": "สร้างแผนก",
+              "department.updated": "แก้ไขแผนก",
+              "department.deleted": "ลบแผนก",
+            };
+            return (
+              <div key={activity.id} className="flex items-center justify-between border-b border-slate-100 pb-3">
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm">
+                    <span className="font-medium">{activity.user?.name || "ระบบ"}</span>
+                    <span className="text-slate-500">
+                      {" "}{labels[activity.action] || activity.action}
+                    </span>
+                  </p>
+                  <p className="mt-0.5 text-xs text-slate-400">
+                    {activity.createdAt ? new Date(activity.createdAt).toLocaleDateString("th-TH", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" }) : ""}
+                  </p>
+                </div>
               </div>
-              <StatusBadge status={document.status} />
-            </div>
-          ))}
-          {data.documents.length === 0 ? <p className="text-sm text-slate-500">ยังไม่มีกิจกรรม</p> : null}
+            );
+          })}
+          {data.activities.length === 0 ? <p className="text-sm text-slate-500">ยังไม่มีกิจกรรม</p> : null}
         </div>
       </Card>
     </div>

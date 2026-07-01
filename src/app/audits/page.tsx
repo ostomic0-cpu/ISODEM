@@ -26,6 +26,8 @@ export default function AuditsPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [filtersExpanded, setFiltersExpanded] = useState(false);
   const [departments, setDepartments] = useState<DepartmentRef[]>([]);
+  const [userRole, setUserRole] = useState<string | null>(null);
+  const [roleChecked, setRoleChecked] = useState(false);
   const pageSize = 15;
   const _totalPages = Math.ceil(audits.length / pageSize);
   const filteredAudits = searchQuery
@@ -60,6 +62,13 @@ export default function AuditsPage() {
     return () => clearTimeout(timer);
   }, [success]);
 
+  useEffect(() => {
+    fetch("/api/auth/me")
+      .then((r) => r.ok ? r.json() : Promise.resolve(null))
+      .then((u) => setUserRole(u?.role ?? null))
+      .finally(() => setRoleChecked(true));
+  }, []);
+
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setSaving(true);
@@ -84,6 +93,7 @@ export default function AuditsPage() {
         <h1 className="text-2xl font-semibold">ระบบตรวจประเมิน</h1>
         <p className="text-sm text-slate-500">วางแผน ตรวจติดตาม และบันทึกข้อค้นพบ</p>
       </div>
+      {roleChecked && userRole && ["Admin", "QA"].includes(userRole) ? (
       <Card>
         <form onSubmit={submit} className="grid gap-3 md:grid-cols-[1fr_auto_auto]">
           <Input name="title" placeholder="หัวข้อการตรวจประเมิน" required />
@@ -99,6 +109,7 @@ export default function AuditsPage() {
           <Button disabled={saving} className="md:col-span-3">{saving ? "กำลังบันทึก..." : "สร้างแผนตรวจ"}</Button>
         </form>
       </Card>
+      ) : null}
       {success ? <p className="rounded-md bg-emerald-50 p-3 text-sm text-emerald-700">{success}</p> : null}
       {error ? <p className="rounded-md bg-rose-50 p-3 text-sm text-rose-700">{error}</p> : null}
       <Card className="p-4">
