@@ -27,6 +27,15 @@ export default function AuditDetailPage({ params }: { params: Promise<{ id: stri
   const [error, setError] = useState("");
   const [reloadKey, setReloadKey] = useState(0);
   const [changingStatus, setChangingStatus] = useState(false);
+  const [userRole, setUserRole] = useState<string | null>(null);
+  const [roleChecked, setRoleChecked] = useState(false);
+
+  useEffect(() => {
+    fetch("/api/auth/me")
+      .then((r) => (r.ok ? r.json() : Promise.resolve(null)))
+      .then((s) => setUserRole(s?.role ?? null))
+      .finally(() => setRoleChecked(true));
+  }, []);
 
   useEffect(() => {
     async function loadAudit() {
@@ -91,20 +100,22 @@ export default function AuditDetailPage({ params }: { params: Promise<{ id: stri
                 </span>
               )}
             </div>
-            <div className="mt-3 flex items-center gap-2">
-              <select
-                value={audit.status}
-                onChange={(e) => changeStatus(e.target.value)}
-                disabled={changingStatus}
-                className="flex h-9 rounded-md border border-slate-300 bg-white px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
-              >
-                <option value="Scheduled">วางแผนแล้ว</option>
-                <option value="InProgress">กำลังดำเนินการ</option>
-                <option value="Completed">เสร็จสิ้น</option>
-                <option value="Cancelled">ยกเลิก</option>
-              </select>
-              {changingStatus ? <span className="text-sm text-slate-500">กำลังเปลี่ยนสถานะ...</span> : null}
-            </div>
+            {roleChecked && userRole && ["Admin", "QA"].includes(userRole) ? (
+              <div className="mt-3 flex items-center gap-2">
+                <select
+                  value={audit.status}
+                  onChange={(e) => changeStatus(e.target.value)}
+                  disabled={changingStatus}
+                  className="flex h-9 rounded-md border border-slate-300 bg-white px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
+                >
+                  <option value="Scheduled">วางแผนแล้ว</option>
+                  <option value="InProgress">กำลังดำเนินการ</option>
+                  <option value="Completed">เสร็จสิ้น</option>
+                  <option value="Cancelled">ยกเลิก</option>
+                </select>
+                {changingStatus ? <span className="text-sm text-slate-500">กำลังเปลี่ยนสถานะ...</span> : null}
+              </div>
+            ) : null}
             <p className="mt-2 text-sm opacity-70">{formatDate(audit.scheduleDate)}</p>
             {audit.department?.name ? (
               <p className="mt-1 text-sm opacity-70">แผนก: {audit.department.name}</p>
