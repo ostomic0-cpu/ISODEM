@@ -14,7 +14,7 @@ import { formatDate, priorityLabels, priorityColors } from "@/lib/utils";
 type DepartmentRef = { id: string; name: string };
 type FindingOption = { id: string; description: string; capa?: unknown };
 type Audit = { findings: FindingOption[] };
-type Capa = { id: string; status: string; targetDate: string; isOverdue?: boolean; priority: string; dueDate?: string | null; assignee?: { id: string; name: string } | null; finding: { description: string }; department?: DepartmentRef | null };
+type Capa = { id: string; capaNumber?: string | null; status: string; targetDate: string; isOverdue?: boolean; priority: string; dueDate?: string | null; assignee?: { id: string; name: string } | null; finding: { description: string }; department?: DepartmentRef | null };
 
 export default function CapasPage() {
   const [capas, setCapas] = useState<Capa[]>([]);
@@ -28,6 +28,7 @@ export default function CapasPage() {
   const [page, setPage] = useState(1);
   const [deptFilter, setDeptFilter] = useState("");
   const [priorityFilter, setPriorityFilter] = useState("");
+  const [myItems, setMyItems] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [filtersExpanded, setFiltersExpanded] = useState(false);
   const [departments, setDepartments] = useState<DepartmentRef[]>([]);
@@ -46,6 +47,7 @@ export default function CapasPage() {
       const sp = new URLSearchParams();
       if (deptFilter) sp.set("departmentId", deptFilter);
       if (priorityFilter) sp.set("priority", priorityFilter);
+      if (myItems) sp.set("assigneeId", "me");
       const query = sp.toString();
       const [capaResponse, auditResponse, usersResponse, deptResponse] = await Promise.all([
         fetch(`/api/capas${query ? `?${query}` : ""}`),
@@ -65,7 +67,7 @@ export default function CapasPage() {
     }
 
     loadCapas();
-  }, [reloadKey, deptFilter, priorityFilter]);
+  }, [reloadKey, deptFilter, priorityFilter, myItems]);
 
   useEffect(() => {
     if (!success) return;
@@ -141,7 +143,14 @@ export default function CapasPage() {
             <Button variant="secondary" onClick={() => setFiltersExpanded((v) => !v)} className="shrink-0">
               ตัวกรอง {filtersExpanded ? "▲" : "▼"}
             </Button>
-            <Button variant="secondary" onClick={() => { setDeptFilter(""); setPriorityFilter(""); setSearchQuery(""); setPage(1); }} className="shrink-0">ล้าง</Button>
+            <Button variant="secondary" onClick={() => { setDeptFilter(""); setPriorityFilter(""); setMyItems(false); setSearchQuery(""); setPage(1); }} className="shrink-0">ล้าง</Button>
+            <Button
+              variant={myItems ? "primary" : "secondary"}
+              onClick={() => { setMyItems((v) => !v); setPage(1); }}
+              className="shrink-0"
+            >
+              {myItems ? "✓ เฉพาะของฉัน" : "เฉพาะของฉัน"}
+            </Button>
           </div>
           {filtersExpanded ? (
             <div className="flex flex-wrap items-end gap-3">
@@ -179,10 +188,11 @@ export default function CapasPage() {
         ) : (
           <>
             <Table>
-              <thead><tr><Th>ข้อค้นพบ</Th><Th>กำหนดเสร็จ</Th><Th>ความสำคัญ</Th><Th>สถานะ</Th><Th>ผู้รับผิดชอบ</Th><Th>แผนก</Th></tr></thead>
+              <thead><tr><Th>เลขที่ CAPA</Th><Th>ข้อค้นพบ</Th><Th>กำหนดเสร็จ</Th><Th>ความสำคัญ</Th><Th>สถานะ</Th><Th>ผู้รับผิดชอบ</Th><Th>แผนก</Th></tr></thead>
               <tbody>
                 {paginatedCapas.map((capa) => (
                   <tr key={capa.id}>
+                    <Td className="text-xs font-mono text-slate-500">{capa.capaNumber || "-"}</Td>
                     <Td className="max-w-[200px] truncate"><Link className="font-medium text-teal-700" href={`/capas/${capa.id}`}>{capa.finding.description}</Link></Td>
                     <Td>{formatDate(capa.targetDate)}</Td>
                     <Td>

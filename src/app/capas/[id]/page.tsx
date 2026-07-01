@@ -10,7 +10,7 @@ import { DepartmentDropdown } from "@/components/shared/department-dropdown";
 import { formatDate, priorityLabels, priorityColors } from "@/lib/utils";
 
 type DepartmentRef = { id: string; name: string };
-type Capa = { id: string; rcaNotes: string; actionPlan: string; verificationNotes?: string | null; status: string; targetDate: string; isOverdue?: boolean; priority: string; dueDate?: string | null; assignee?: { id: string; name: string } | null; finding: { description: string }; department?: DepartmentRef | null };
+type Capa = { id: string; capaNumber?: string | null; rcaNotes: string; actionPlan: string; verificationNotes?: string | null; status: string; targetDate: string; isOverdue?: boolean; priority: string; dueDate?: string | null; assignee?: { id: string; name: string } | null; finding: { description: string }; department?: DepartmentRef | null };
 
 export default function CapaDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -53,7 +53,12 @@ export default function CapaDetailPage({ params }: { params: Promise<{ id: strin
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold">รายละเอียด CAPA</h1>
+        <h1 className="text-2xl font-semibold">
+          {capa.capaNumber ? (
+            <><span className="text-slate-400">{capa.capaNumber}</span> — </>
+          ) : null}
+          รายละเอียด CAPA
+        </h1>
         <p className="text-sm text-slate-500">{capa.finding.description}</p>
         {capa.department?.name ? (
           <p className="mt-1 text-xs text-slate-500">แผนก: {capa.department.name}</p>
