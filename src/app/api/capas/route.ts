@@ -14,9 +14,12 @@ export async function GET(request: NextRequest) {
   const url = new URL(request.url);
   const departmentId = url.searchParams.get("departmentId");
   const priority = url.searchParams.get("priority");
+  const assigneeId = url.searchParams.get("assigneeId");
   const where: Record<string, unknown> = {};
   if (departmentId) where.departmentId = departmentId;
   if (priority) where.priority = priority;
+  if (assigneeId === "me") where.assigneeId = auth.session.id;
+  else if (assigneeId) where.assigneeId = assigneeId;
   const capas = await prisma.cAPA.findMany({
     where,
     orderBy: { targetDate: "asc" },
@@ -51,20 +54,37 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  const capa = await prisma.cAPA.create({
-    data: {
-      findingId: body.findingId,
-      rcaNotes: body.rcaNotes,
-      actionPlan: body.actionPlan,
-      verificationNotes: body.verificationNotes || null,
-      status: body.status || "Open",
-      assigneeId: body.assigneeId || auth.session.id,
-      departmentId: body.departmentId || null,
-      priority: body.priority || "MEDIUM",
-      targetDate: new Date(body.targetDate),
-      dueDate: body.dueDate ? new Date(body.dueDate) : null,
-    },
+  // Generate CAPA auto-numbering in transaction
+  const year = new Date().getFullYear();
+  const capa = await prisma.$transaction(async (tx) => {
+    const counter = await tx.capaCounter.upsert({
+      where: { year },
+      create: { year, nextSequence: 1 },
+      update: {},
+    });
+    const seq = counter.nextSequence;
+    await tx.capaCounter.update({
+      where: { id: counter.id },
+      data: { nextSequence: seq + 1 },
+    });
+    const capaNumber = `CAPA-${year}-${String(seq).padStart(3, "0")}`;
+
+    return tx.cAPA.create({
+      data: {
+        capaNumber,
+        findingId: body.findingId,
+        rcaNotes: body.rcaNotes,
+        actionPlan: body.actionPlan,
+        verificationNotes: body.verificationNotes || null,
+        status: body.status || "Open",
+        assigneeId: body.assigneeId || auth.session.id,
+        departmentId: body.departmentId || null,
+        priority: body.priority || "MEDIUM",
+        targetDate: new Date(body.targetDate),
+        dueDate: body.dueDate ? new Date(body.dueDate) : null,
+      },
+    });
   });
-  logActivity(auth.session.id, "capa.created", { capaId: capa.id, findingId: capa.findingId, status: capa.status });
+  logActivity(auth.session.id, "capa.created", { capaId: capa.id, findingId: capa.findingId, status: capa.status, capaNumber: capa.capaNumber });
   return Response.json(capa, { status: 201 });
 }
