@@ -154,6 +154,7 @@ model AuditFinding {
 
 model CAPA {
   id                String       @id @default(cuid())
+  capaNumber        String?      @unique
   findingId         String       @unique
   finding           AuditFinding @relation(fields: [findingId], references: [id], onDelete: Cascade)
   rcaNotes          String
@@ -169,6 +170,16 @@ model CAPA {
   dueDate           DateTime?
   createdAt         DateTime     @default(now())
   updatedAt         DateTime     @updatedAt
+}
+
+model CapaCounter {
+  id           String   @id @default(cuid())
+  year         Int
+  nextSequence Int      @default(1)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@unique([year])
 }
 
 model ActivityLog {
