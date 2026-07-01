@@ -43,6 +43,9 @@ prisma/dev.db-journal
 # uploads
 public/uploads/
 
+# backup artifacts
+/backups/
+
 # prisma config (generated)
 prisma.config.ts
 
